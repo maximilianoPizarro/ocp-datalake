@@ -1,0 +1,14 @@
+{
+  "name": "churn-score",
+  "version": "1",
+  "framework": "linear",
+  "source": "databricks-mlflow",
+  "registry": "databricks-ml-registry",
+  "weights": {
+    "tenure": -0.02,
+    "charges": 0.001,
+    "support_tickets": 0.15
+  },
+  "bias": 0.12,
+  "threshold": 0.5
+}

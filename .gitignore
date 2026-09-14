@@ -1,0 +1,5 @@
+.kube/
+*.token
+.env
+*.kubeconfig
+.DS_Store

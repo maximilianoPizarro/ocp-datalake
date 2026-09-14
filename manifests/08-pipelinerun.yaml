@@ -1,0 +1,20 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: notebook-to-openshift-
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  pipelineRef:
+    name: notebook-to-openshift
+  taskRunTemplate:
+    serviceAccountName: pipeline
+  timeouts:
+    pipeline: 10m
+  workspaces:
+    - name: assets
+      configMap:
+        name: ml-assets
+    - name: scratch
+      emptyDir: {}

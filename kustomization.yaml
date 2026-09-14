@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ocp-datalake
+resources:
+  - manifests/00-namespace.yaml
+  - manifests/01-quota.yaml
+  - manifests/02-rbac.yaml
+  - manifests/02b-auth-delegator.yaml
+  - manifests/03-obc.yaml
+  - manifests/04-networkpolicy.yaml
+  - manifests/05-runtime.yaml
+  - manifests/06-inference.yaml
+  - manifests/07-pipeline.yaml
+configMapGenerator:
+  - name: inference-src
+    files:
+      - server.py=apps/inference/server.py
+  - name: model-artifact
+    files:
+      - model.json=apps/model/model.json
+  - name: ml-assets
+    files:
+      - s3_model.py=scripts/s3_model.py
+      - model.json=apps/model/model.json
+generatorOptions:
+  disableNameSuffixHash: true
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: ocp-datalake
+    includeSelectors: false

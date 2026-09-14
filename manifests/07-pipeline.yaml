@@ -1,0 +1,152 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: seed-databricks-registry
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  description: Push a model artifact into the ODF NooBaa bucket (Databricks registry stand-in).
+  workspaces:
+    - name: assets
+  steps:
+    - name: put
+      image: image-registry.openshift-image-registry.svc:5000/openshift/python:3.12-ubi9
+      imagePullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 192Mi
+      env:
+        - name: MODEL_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: ml-runtime
+              key: MODEL_KEY
+      envFrom:
+        - secretRef:
+            name: databricks-ml-registry
+        - configMapRef:
+            name: databricks-ml-registry
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        python3 "$(workspaces.assets.path)/s3_model.py" put "$(workspaces.assets.path)/model.json"
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: pull-validate-model
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  description: Pull the artifact from NooBaa, validate it, and publish it as a ConfigMap.
+  workspaces:
+    - name: assets
+    - name: scratch
+  steps:
+    - name: validate
+      image: image-registry.openshift-image-registry.svc:5000/openshift/python:3.12-ubi9
+      imagePullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 192Mi
+      env:
+        - name: MODEL_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: ml-runtime
+              key: MODEL_KEY
+      envFrom:
+        - secretRef:
+            name: databricks-ml-registry
+        - configMapRef:
+            name: databricks-ml-registry
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        python3 "$(workspaces.assets.path)/s3_model.py" validate
+        python3 "$(workspaces.assets.path)/s3_model.py" get > "$(workspaces.scratch.path)/model.json"
+    - name: publish
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      imagePullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        oc create configmap model-artifact \
+          --from-file=model.json="$(workspaces.scratch.path)/model.json" \
+          -n ocp-datalake \
+          --dry-run=client -o yaml | oc apply -f -
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: rollout-inference
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  steps:
+    - name: oc
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      imagePullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        oc rollout restart deployment/inference -n ocp-datalake
+        oc rollout status deployment/inference -n ocp-datalake --timeout=180s
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: notebook-to-openshift
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  description: Databricks-style registry publish, then OpenShift pull/validate/serve.
+  workspaces:
+    - name: assets
+    - name: scratch
+  tasks:
+    - name: seed
+      taskRef:
+        name: seed-databricks-registry
+      workspaces:
+        - name: assets
+          workspace: assets
+    - name: pull
+      runAfter: ["seed"]
+      taskRef:
+        name: pull-validate-model
+      workspaces:
+        - name: assets
+          workspace: assets
+        - name: scratch
+          workspace: scratch
+    - name: rollout
+      runAfter: ["pull"]
+      taskRef:
+        name: rollout-inference

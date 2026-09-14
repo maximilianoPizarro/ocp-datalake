@@ -1,0 +1,11 @@
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: databricks-ml-registry
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: databricks-ml-registry
+spec:
+  generateBucketName: databricks-ml-registry
+  storageClassName: openshift-storage.noobaa.io
