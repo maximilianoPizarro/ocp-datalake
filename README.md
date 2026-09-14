@@ -6,6 +6,8 @@ The target cluster is a **single AWS g6.16xlarge node** (64 vCPU, 256 GiB, 1× N
 
 Namespace: `ocp-datalake`.
 
+Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token that was pasted into a chat or a ticket.
+
 ---
 
 ## Red Hat products
@@ -13,18 +15,16 @@ Namespace: `ocp-datalake`.
 | Product | Role in this flow |
 | --- | --- |
 | **Red Hat OpenShift** | Cluster, project, Route, SCC, OAuth, RBAC, NetworkPolicy, ResourceQuota |
-| **Red Hat OpenShift Data Foundation** (NooBaa) | S3 object bucket for the artifact (`ObjectBucketClaim`) |
+| **Red Hat OpenShift Data Foundation** (NooBaa) | Target S3 registry (`ObjectBucketClaim`). This sandbox uses a PVC instead. |
 | **Red Hat OpenShift Pipelines** (Tekton) | Job that pulls, validates, and publishes the model |
-| **Red Hat OpenShift GitOps** (Argo CD) | Promote and roll back the same manifests |
-| **Red Hat OpenShift AI** (KServe) | Workbench and model serving on the L4 |
-| **NVIDIA GPU Operator** + **Node Feature Discovery** | GPU discovery and scheduling |
-| **Red Hat OpenShift Serverless** | Elastic serving for KServe (single-model platform) |
-| **Red Hat OpenShift Service Mesh** | Traffic, mTLS, and policies in front of the InferenceService |
-| **Red Hat OpenShift Observability** (Logging / Monitoring) | Logs, metrics, and cluster-to-container correlation |
+| **Red Hat OpenShift GitOps** (Argo CD) | Target promotion path. This sandbox uses `oc apply` + PipelineRun. |
+| **Red Hat OpenShift AI** (KServe) | `ServingRuntime` + `InferenceService` for `churn-score` (CPU) |
+| **NVIDIA GPU Operator** + **Node Feature Discovery** | GPU discovery. The L4 stays with generative serving, not this linear model. |
+| **Red Hat OpenShift Serverless** | Available for KServe when using the single-model platform |
 | **Red Hat Build of Keycloak** | Cluster OpenID identity provider (OAuth federation) |
-| **Red Hat Universal Base Image** (Python 3.12) | Image for pipeline tasks and the initial inference PoC |
+| **Red Hat Universal Base Image** (Python 3.12) | Custom predictive runtime and pipeline tasks |
 
-Outside Red Hat, the model source is **Databricks MLflow Model Registry** (this PoC simulates it with the ODF bucket and `apps/model/model.json`).
+Outside Red Hat, the model source is **Databricks MLflow Model Registry** (this PoC simulates it with PVC `databricks-ml-registry` and `apps/model/model.json`).
 
 ---
 
@@ -32,7 +32,7 @@ Outside Red Hat, the model source is **Databricks MLflow Model Registry** (this 
 
 ![Architecture: Databricks on the left; OpenShift in the center with ODF, Pipelines, GitOps, OpenShift AI/KServe, Serverless, and Service Mesh; Route on the right; Red Hat Build of Keycloak as IdP](docs/assets/diagrams/architecture.png)
 
-OpenShift does not enter the Databricks workspace. It receives a versioned artifact (S3/MLflow), materializes it under cluster policy, and serves it. The GPU is used for serving (KServe) and, if needed, for a workbench. There is **one** L4, so the notebook and the endpoint must not run on GPU at the same time.
+OpenShift does not enter the Databricks workspace. It receives a versioned artifact, materializes it under cluster policy, and serves it. There is **one** L4: do not schedule this CPU model and a GPU workbench or vLLM endpoint on the GPU at the same time.
 
 ---
 
@@ -46,66 +46,50 @@ Three roles, one artifact (`churn-score` v1), five steps. The consumer never tal
 | --- | --- | --- |
 | Data scientist | Train, version, and publish the model | Databricks / MLflow |
 | Platform engineer | Promotion, quota, network, GPU, and serving | OpenShift (Pipelines, GitOps, AI, policies) |
-| Consumer | Invoke prediction | Route `/predict` |
+| Consumer | Invoke prediction | Route `/predict` or KServe v1 |
 
 ### 1. Publish the model
 
-The data scientist does not hand over a notebook. They publish a versioned artifact in the registry (name `churn-score`, version `1`).
-
-On Databricks that is MLflow Model Registry. In this repository the contract is `apps/model/model.json`: `weights`, `bias`, and `threshold`.
-
-**Output:** an immutable model, identified by name and version.
+The contract is `apps/model/model.json`: `weights`, `bias`, and `threshold`. Name `churn-score`, version `1`.
 
 ### 2. Store the artifact
 
-OpenShift Data Foundation (NooBaa) exposes S3. The `databricks-ml-registry` `ObjectBucketClaim` provisions the bucket plus a connection Secret and ConfigMap.
+Object key: `models/churn-score/1/model.json`. On this OpenTLC sandbox the stand-in is PVC `databricks-ml-registry` (`gp3-csi`), because OpenShift Data Foundation is not installed.
 
-Object key: `models/churn-score/1/model.json` (MLflow-style layout).
-
-**Output:** the artifact in cluster object storage, using service-account credentials, not a human user.
-
-### 3. Promote with Pipelines and GitOps
+### 3. Promote with Pipelines
 
 OpenShift Pipelines runs `notebook-to-openshift` as ServiceAccount `pipeline` (Role `databricks-puller`):
 
-1. **seed** — writes the JSON to the bucket (AWS SigV4).
-2. **pull / validate** — reads it, validates the schema, and publishes ConfigMap `model-artifact`.
-3. **rollout** — restarts or updates serving.
-
-OpenShift GitOps applies the same manifests and supports rollback. A merge can trigger validation and deployment. No personal token belongs in a Secret.
-
-**Output:** a ConfigMap (or image) ready to serve, with PipelineRun history and Argo CD sync state.
+1. **seed** — writes the JSON onto the registry volume.
+2. **pull / validate** — schema check, then ConfigMap `model-artifact`.
+3. **rollout** — restarts the KServe predictor and the oauth-proxy gateway.
 
 ### 4. Serve on OpenShift AI
 
-KServe deploys the InferenceService on the **NVIDIA L4**. Node Feature Discovery and the GPU Operator label the node. Serverless and Service Mesh apply when using the OpenShift AI single-model platform.
+KServe `InferenceService` `churn-score` uses a custom `ServingRuntime` (UBI Python). **No GPU request** — the NVIDIA L4 remains available for generative models such as the workshop `llama-32-3b-instruct`.
 
-The earlier PoC (UBI Python + oauth-proxy) proves the HTTP contract. On the g6.16xlarge, the serving target is the InferenceService.
-
-**Output:** an internal model endpoint with CPU, memory, and GPU limits.
+oauth-proxy sits in front of the predictor Service (headless, so the upstream is port **8080**, not 80) and federates `/` to cluster OAuth (RHBK). `/healthz`, `/predict`, `/model`, `/v1`, and `/v2` skip auth so the PoC can be curled.
 
 ### 5. Consume `/predict`
 
-An OpenShift Route terminates TLS and publishes the service.
-
-- The consumer sends `POST /predict` with `tenure`, `charges`, and `support_tickets`.
-- Cluster OAuth federated to **Red Hat Build of Keycloak** authenticates governed access.
-- Observability correlates the PipelineRun, the serving pod, and the Route.
-
-**Output:** JSON `{ model, version, probability, churn }`. The client holds neither Databricks nor S3 credentials.
+```bash
+ROUTE=https://inference-ocp-datalake.apps.ocp.bt58s.sandbox2518.opentlc.com
+```
 
 ---
 
 ## Identity
 
-Cluster OAuth uses RHBK (realm `sso`, client `idp-4-ocp`). The serving ServiceAccount is registered as an OAuth client (`oauth-redirectreference` to the Route). The pipeline runs as `pipeline`, not as a user. The handshake is service account plus OIDC, not static personal secrets.
+Cluster OAuth uses RHBK (realm `sso`, client `idp-4-ocp`). The gateway ServiceAccount is an OAuth client (`oauth-redirectreference` to the Route). The pipeline runs as `pipeline`. The handshake is service account plus OIDC, not a personal token in a Secret.
 
 ---
 
 ## Try the current PoC
 
+This OpenTLC sandbox (`ocp.bt58s`) has OpenShift AI, GPU Operator, Pipelines, and RHBK. Registry storage is the PVC above. The L4 is not attached to `churn-score`.
+
 ```bash
-ROUTE=https://inference-ocp-datalake.apps.cluster-5jfws.dyn.redhatworkshops.io
+ROUTE=https://inference-ocp-datalake.apps.ocp.bt58s.sandbox2518.opentlc.com
 
 curl -sk "$ROUTE/healthz"
 curl -sk "$ROUTE/model"
@@ -113,21 +97,26 @@ curl -sk "$ROUTE/model"
 curl -sk -H 'Content-Type: application/json' \
   -d '{"tenure":12,"charges":70,"support_tickets":3}' \
   "$ROUTE/predict"
+
+curl -sk -H 'Content-Type: application/json' \
+  -d '{"instances":[{"tenure":12,"charges":70,"support_tickets":3}]}' \
+  "$ROUTE/v1/models/churn-score:predict"
 ```
 
 Expected: `churn: true` (probability ≈ 0.60). With `tenure: 60`, `charges: 20`, `support_tickets: 0`: `churn: false` (≈ 0.26).
 
-Run seed → validate → rollout again:
+Unit tests (no cluster):
 
 ```bash
-oc create -f manifests/08-pipelinerun.yaml
-oc get pipelinerun -n ocp-datalake -w
+python -m unittest discover -s tests -v
 ```
 
-Apply manifests:
+Apply manifests, then run seed → validate → rollout:
 
 ```bash
 oc apply -k .
+oc create -f manifests/08-pipelinerun.yaml
+oc get pipelinerun,inferenceservice -n ocp-datalake -w
 ```
 
 ---
@@ -135,9 +124,11 @@ oc apply -k .
 ## Repository layout
 
 ```
-apps/inference/server.py    inference HTTP contract
+apps/inference/server.py    inference HTTP contract (native + KServe v1)
 apps/model/model.json       MLflow-style artifact
-scripts/s3_model.py         put / get / validate against NooBaa
-manifests/                  namespace, quota, RBAC, OBC, network, runtime, serving, pipeline
+scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket
+manifests/                  namespace, quota, RBAC, PVC, network, runtime, gateway, pipeline, KServe
+tests/                      stdlib unittest for the inference contract
+.github/workflows/ci.yaml   unit tests on push and pull request
 kustomization.yaml
 ```

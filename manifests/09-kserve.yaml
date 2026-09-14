@@ -1,0 +1,109 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: churn-score
+  namespace: ocp-datalake
+  annotations:
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/modelServingSupport: '["single"]'
+    opendatahub.io/template-display-name: churn-score linear runtime
+    openshift.io/display-name: churn-score
+  labels:
+    opendatahub.io/dashboard: "true"
+    app.kubernetes.io/name: churn-score
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8080"
+  multiModel: false
+  protocolVersions:
+    - v1
+    - v2
+  supportedModelFormats:
+    - name: churn-score
+      version: "1"
+      autoSelect: true
+  volumes:
+    - name: src
+      configMap:
+        name: inference-src
+  containers:
+    - name: kserve-container
+      image: image-registry.openshift-image-registry.svc:5000/openshift/python:3.12-ubi9
+      imagePullPolicy: IfNotPresent
+      command: ["python3", "/opt/app-root/src/server.py"]
+      env:
+        - name: BIND
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8080"
+        - name: MODEL_PATH
+          value: /mnt/models/model.json
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+      volumeMounts:
+        - name: src
+          mountPath: /opt/app-root/src/server.py
+          subPath: server.py
+          readOnly: true
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 192Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot: true
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 20
+      readinessProbe:
+        httpGet:
+          path: /readyz
+          port: 8080
+        initialDelaySeconds: 2
+        periodSeconds: 10
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: churn-score
+  namespace: ocp-datalake
+  annotations:
+    openshift.io/display-name: churn-score
+    opendatahub.io/model-type: predictive
+    security.opendatahub.io/enable-auth: "false"
+    serving.kserve.io/deploymentMode: Standard
+    serving.kserve.io/stop: "false"
+  labels:
+    opendatahub.io/dashboard: "true"
+    app.kubernetes.io/name: churn-score
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  predictor:
+    automountServiceAccountToken: false
+    minReplicas: 1
+    maxReplicas: 1
+    model:
+      modelFormat:
+        name: churn-score
+        version: "1"
+      protocolVersion: v1
+      runtime: churn-score
+      storageUri: pvc://databricks-ml-registry/models/churn-score/1
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 192Mi

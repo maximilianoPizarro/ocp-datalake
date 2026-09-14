@@ -16,7 +16,7 @@ spec:
         memory: 64Mi
       max:
         cpu: "1"
-        memory: 512Mi
+        memory: 1Gi
     - type: PersistentVolumeClaim
       max:
         storage: 1Gi
@@ -31,10 +31,9 @@ metadata:
 spec:
   hard:
     pods: "12"
-    requests.cpu: 500m
-    requests.memory: 768Mi
-    limits.cpu: "2"
-    limits.memory: 2Gi
+    requests.cpu: "1"
+    requests.memory: 1Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
     persistentvolumeclaims: "1"
     requests.storage: 1Gi
-    count/objectbucketclaims.objectbucket.io: "1"

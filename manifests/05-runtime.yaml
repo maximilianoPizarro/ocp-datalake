@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: ocp-datalake
 data:
-  MODEL_PATH: /opt/app-root/src/model.json
+  MODEL_PATH: /mnt/models/model.json
   BIND: 0.0.0.0
   PORT: "8080"
   MODEL_KEY: models/churn-score/1/model.json

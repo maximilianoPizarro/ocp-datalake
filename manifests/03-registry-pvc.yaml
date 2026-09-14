@@ -1,5 +1,5 @@
-apiVersion: objectbucket.io/v1alpha1
-kind: ObjectBucketClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
   name: databricks-ml-registry
   namespace: ocp-datalake
@@ -7,5 +7,9 @@ metadata:
     app.kubernetes.io/part-of: ocp-datalake
     app.kubernetes.io/name: databricks-ml-registry
 spec:
-  generateBucketName: databricks-ml-registry
-  storageClassName: openshift-storage.noobaa.io
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: gp3-csi
