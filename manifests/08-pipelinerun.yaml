@@ -16,5 +16,8 @@ spec:
     - name: assets
       configMap:
         name: ml-assets
+    - name: registry
+      persistentVolumeClaim:
+        claimName: databricks-ml-registry
     - name: scratch
       emptyDir: {}

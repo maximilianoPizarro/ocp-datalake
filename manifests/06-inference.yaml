@@ -31,7 +31,7 @@ spec:
             - --https-address=
             - --provider=openshift
             - --openshift-service-account=inference
-            - --upstream=http://127.0.0.1:8080
+            - --upstream=http://churn-score-predictor.ocp-datalake.svc:8080
             - --cookie-secret-file=/etc/proxy/secret/cookie-secret
             - --cookie-secure=true
             - --pass-access-token=true
@@ -40,6 +40,8 @@ spec:
             - --skip-auth-regex=^/metrics
             - --skip-auth-regex=^/predict
             - --skip-auth-regex=^/model
+            - --skip-auth-regex=^/v1
+            - --skip-auth-regex=^/v2
           ports:
             - name: public
               containerPort: 4180
@@ -54,62 +56,26 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
-          volumeMounts:
-            - name: proxy-secret
-              mountPath: /etc/proxy/secret
-              readOnly: true
-        - name: model
-          image: image-registry.openshift-image-registry.svc:5000/openshift/python:3.12-ubi9
-          imagePullPolicy: IfNotPresent
-          command: ["python3", "/opt/app-root/src/server.py"]
-          envFrom:
-            - configMapRef:
-                name: ml-runtime
-          ports:
-            - name: http
-              containerPort: 8080
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 192Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
           readinessProbe:
             httpGet:
-              path: /readyz
-              port: 8080
-            initialDelaySeconds: 2
+              path: /healthz
+              port: 4180
+            initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 8080
-            initialDelaySeconds: 5
+              port: 4180
+            initialDelaySeconds: 10
             periodSeconds: 20
           volumeMounts:
-            - name: src
-              mountPath: /opt/app-root/src/server.py
-              subPath: server.py
-              readOnly: true
-            - name: model
-              mountPath: /opt/app-root/src/model.json
-              subPath: model.json
+            - name: proxy-secret
+              mountPath: /etc/proxy/secret
               readOnly: true
       volumes:
         - name: proxy-secret
           secret:
             secretName: oauth-proxy
-        - name: src
-          configMap:
-            name: inference-src
-        - name: model
-          configMap:
-            name: model-artifact
 ---
 apiVersion: v1
 kind: Service

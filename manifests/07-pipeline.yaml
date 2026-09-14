@@ -6,9 +6,10 @@ metadata:
   labels:
     app.kubernetes.io/part-of: ocp-datalake
 spec:
-  description: Push a model artifact into the ODF NooBaa bucket (Databricks registry stand-in).
+  description: Publish a versioned model artifact into the registry volume (Databricks stand-in).
   workspaces:
     - name: assets
+    - name: registry
   steps:
     - name: put
       image: image-registry.openshift-image-registry.svc:5000/openshift/python:3.12-ubi9
@@ -26,15 +27,14 @@ spec:
             configMapKeyRef:
               name: ml-runtime
               key: MODEL_KEY
-      envFrom:
-        - secretRef:
-            name: databricks-ml-registry
-        - configMapRef:
-            name: databricks-ml-registry
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
-        python3 "$(workspaces.assets.path)/s3_model.py" put "$(workspaces.assets.path)/model.json"
+        dest="$(workspaces.registry.path)/${MODEL_KEY}"
+        mkdir -p "$(dirname "$dest")"
+        python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8'))" "$(workspaces.assets.path)/model.json"
+        cp "$(workspaces.assets.path)/model.json" "$dest"
+        echo "put file://${dest}"
 ---
 apiVersion: tekton.dev/v1
 kind: Task
@@ -44,9 +44,10 @@ metadata:
   labels:
     app.kubernetes.io/part-of: ocp-datalake
 spec:
-  description: Pull the artifact from NooBaa, validate it, and publish it as a ConfigMap.
+  description: Validate the registry artifact and publish it as a ConfigMap.
   workspaces:
     - name: assets
+    - name: registry
     - name: scratch
   steps:
     - name: validate
@@ -65,16 +66,22 @@ spec:
             configMapKeyRef:
               name: ml-runtime
               key: MODEL_KEY
-      envFrom:
-        - secretRef:
-            name: databricks-ml-registry
-        - configMapRef:
-            name: databricks-ml-registry
+        - name: REGISTRY
+          value: $(workspaces.registry.path)
+        - name: SCRATCH
+          value: $(workspaces.scratch.path)
       script: |
-        #!/usr/bin/env bash
-        set -euo pipefail
-        python3 "$(workspaces.assets.path)/s3_model.py" validate
-        python3 "$(workspaces.assets.path)/s3_model.py" get > "$(workspaces.scratch.path)/model.json"
+        #!/usr/bin/env python3
+        import json, os, pathlib, shutil, sys
+        src = pathlib.Path(os.environ["REGISTRY"]) / os.environ["MODEL_KEY"]
+        required = ("name", "version", "weights", "bias", "threshold")
+        model = json.loads(src.read_text(encoding="utf-8"))
+        missing = [k for k in required if k not in model]
+        if missing:
+            sys.exit(f"invalid artifact, missing: {', '.join(missing)}")
+        dest = pathlib.Path(os.environ["SCRATCH"]) / "model.json"
+        shutil.copy(src, dest)
+        print(f"valid model={model['name']} version={model['version']} source={model.get('source')}", flush=True)
     - name: publish
       image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
       imagePullPolicy: IfNotPresent
@@ -115,6 +122,8 @@ spec:
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
+        oc rollout restart deployment/churn-score-predictor -n ocp-datalake
+        oc wait --for=condition=Ready inferenceservice/churn-score -n ocp-datalake --timeout=180s
         oc rollout restart deployment/inference -n ocp-datalake
         oc rollout status deployment/inference -n ocp-datalake --timeout=180s
 ---
@@ -129,6 +138,7 @@ spec:
   description: Databricks-style registry publish, then OpenShift pull/validate/serve.
   workspaces:
     - name: assets
+    - name: registry
     - name: scratch
   tasks:
     - name: seed
@@ -137,6 +147,8 @@ spec:
       workspaces:
         - name: assets
           workspace: assets
+        - name: registry
+          workspace: registry
     - name: pull
       runAfter: ["seed"]
       taskRef:
@@ -144,6 +156,8 @@ spec:
       workspaces:
         - name: assets
           workspace: assets
+        - name: registry
+          workspace: registry
         - name: scratch
           workspace: scratch
     - name: rollout
