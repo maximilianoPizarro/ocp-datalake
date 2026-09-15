@@ -102,6 +102,17 @@ h1 {
 }
 .chapters button:hover { border-color: var(--rh-color-brand-red); color: var(--rh-color-brand-red); }
 .chapters button[aria-current="true"]:hover { color: #fff; }
+.chapters a {
+  border: 1px solid var(--rh-color-border);
+  color: var(--rh-color-text-primary);
+  text-decoration: none;
+  font-family: var(--rh-font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+}
+.chapters a:hover { border-color: var(--rh-color-brand-red); color: var(--rh-color-brand-red); }
 
 .hint {
   font-size: 0.8rem;
@@ -129,20 +140,6 @@ h1 {
   display: flex;
   flex-direction: column;
   background: #0f0f10;
-}
-.journey-carousel.is-fullscreen .journey-viewport {
-  flex: 1 1 0;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.journey-carousel.is-fullscreen .journey-slide.is-active { width: 100%; height: 100%; }
-.journey-carousel.is-fullscreen .journey-slide img {
-  max-height: calc(100vh - 11rem);
-  height: auto;
-  width: auto;
-  max-width: 100%;
 }
 body.journey-fs-open { overflow: hidden; }
 
@@ -229,11 +226,6 @@ body.journey-fs-open { overflow: hidden; }
     border-left: 1px solid var(--rh-color-border);
     padding: 1.25rem 1.5rem;
   }
-  .journey-carousel.is-fullscreen .journey-slide.is-active { grid-template-columns: 1fr; }
-  .journey-carousel.is-fullscreen .journey-slide figcaption {
-    border-left: none;
-    border-top: 1px solid var(--rh-color-border);
-  }
 }
 
 .journey-controls {
@@ -319,6 +311,20 @@ pre {
   overflow-x: auto;
   line-height: 1.45;
 }
+table.compat {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  margin: 0.75rem 0;
+}
+table.compat th, table.compat td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--rh-color-border);
+}
+table.compat th { color: var(--rh-color-text-secondary); font-weight: 600; }
+table.compat td:first-child { font-family: var(--rh-font-display); font-weight: 700; white-space: nowrap; width: 4.5rem; }
 
 footer {
   max-width: 1180px;
@@ -346,4 +352,39 @@ footer {
   }
   main { padding: 1rem 1rem 2.5rem; }
   h1 { font-size: 1.45rem; }
+}
+
+.journey-carousel.is-fullscreen .journey-viewport {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+.journey-carousel.is-fullscreen .journey-slide.is-active {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.journey-carousel.is-fullscreen .journey-slide img,
+.journey-carousel.is-fullscreen .journey-slide img.is-diagram {
+  flex: 1 1 0;
+  width: 100%;
+  height: 0;
+  max-width: none;
+  max-height: none;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center center;
+  margin: 0;
+  background: #151515;
+}
+.journey-carousel.is-fullscreen .journey-slide figcaption {
+  flex: 0 0 auto;
+  border-left: none;
+  border-top: 1px solid var(--rh-color-border);
+  padding: 0.7rem 1.25rem;
 }

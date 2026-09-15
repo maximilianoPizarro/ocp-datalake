@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Journey | ocp-datalake</title>
-  <meta name="description" content="Demo interactiva: de Databricks a /predict en OpenShift AI. Capturas reales del clúster.">
+  <meta name="description" content="Demo interactiva: promocion en OpenShift AI. El registry de Databricks esta simulado con un PVC y model.json.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -25,8 +25,9 @@
   <main>
     <h1>Databricks → OpenShift AI</h1>
     <p class="lede">
-      Un artefacto versionado entra al clúster, se valida, se registra y se sirve.
-      El consumidor solo habla HTTP. Capturas del sandbox OpenTLC, 15 sep 2026.
+      El flujo de gobierno está en el clúster: validar, registrar, servir.
+      El registry de Databricks está <strong>simulado</strong> (PVC + <code>model.json</code>, no un bundle MLflow).
+      Capturas del sandbox OpenTLC, 15 sep 2026.
     </p>
 
     <nav class="chapters" aria-label="Capítulos">
@@ -34,6 +35,7 @@
       <button type="button" data-slide="2">OpenShift</button>
       <button type="button" data-slide="10">OpenShift AI</button>
       <button type="button" data-slide="16">/predict</button>
+      <a href="#compat">Compat</a>
     </nav>
 
     <div id="journey-carousel" class="journey-carousel" tabindex="0" aria-roledescription="carrusel">
@@ -44,7 +46,7 @@
           <figcaption>
             <span class="slide-num">Step 01</span>
             <strong>El plano</strong>
-            <span class="desc">OpenShift no entra a Databricks. Recibe <code>model.json</code>, lo materializa en un PVC, lo registra y lo sirve en CPU. La L4 queda con Llama.</span>
+            <span class="desc">OpenShift no entra al workspace. <strong>Hoy</strong> el artefacto es <code>model.json</code> (coeficientes), no un directorio MLflow. El PVC simula el registry.</span>
           </figcaption>
         </figure>
 
@@ -53,7 +55,7 @@
           <figcaption>
             <span class="slide-num">Step 02</span>
             <strong>Cinco pasos</strong>
-            <span class="desc">Publicar → almacenar → promover → servir → consumir. Si <code>validate</code> falla, no corren register ni rollout.</span>
+            <span class="desc">Publicar en este PoC es el <strong>seed</strong> del JSON. No hay cliente Databricks. Si <code>validate</code> falla, no corren register ni rollout.</span>
           </figcaption>
         </figure>
 
@@ -89,7 +91,7 @@
           <figcaption>
             <span class="slide-num">Step 06</span>
             <strong>seed → pull → register → rollout</strong>
-            <span class="desc">La task <code>pull</code> valida el contrato. Artefacto inválido: el InferenceService sigue sirviendo la última versión buena.</span>
+            <span class="desc">La task <code>pull</code> valida keys de <em>nuestro</em> JSON (<code>weights</code>, <code>bias</code>, <code>threshold</code>), no la signature de un <code>MLmodel</code>.</span>
           </figcaption>
         </figure>
 
@@ -212,6 +214,20 @@
 curl -sk -H 'Content-Type: application/json' \
   -d '{"tenure":12,"charges":70,"support_tickets":3}' \
   "$ROUTE/predict"</pre>
+    </section>
+
+    <section class="commands" id="compat">
+      <h2>Compatibilidad Databricks</h2>
+      <p><strong>Hoy: conceptual alta, técnica baja.</strong> El flujo (registry → promoción → serving bajo política de clúster) está bien modelado. El contrato del artefacto <em>no</em> es MLflow: es un JSON de coeficientes, no un directorio <code>MLmodel</code> + <code>model.pkl</code>. No apuntes un registry de producción a este PoC.</p>
+      <table class="compat">
+        <thead><tr><th>Encaje</th><th>Qué entra</th></tr></thead>
+        <tbody>
+          <tr><td>Alto</td><td>Lineal exportado a mano (<code>coef_</code> / <code>intercept_</code>) → este JSON. Es <code>churn-score</code> v1, no “traer el modelo del registry”.</td></tr>
+          <tr><td>Medio</td><td>sklearn / XGBoost / LightGBM: cambiar el ServingRuntime (MLServer + mlflow, o ONNX + OVMS/Triton). No parches <code>server.py</code>. Cuidado con pickle vs UBI 3.12.</td></tr>
+          <tr><td>Bajo</td><td>Spark ML, Feature Store / Unity Catalog en inferencia, rutas DBFS o volúmenes UC.</td></tr>
+        </tbody>
+      </table>
+      <p>Falta el puente real: Unity Catalog (<code>models:/catalog.schema.model/1</code>), OAuth M2M (no un PAT en un Secret) y egress. Detalle en el <a href="https://github.com/maximilianoPizarro/ocp-datalake#databricks-compatibility">README</a>.</p>
     </section>
   </main>
 

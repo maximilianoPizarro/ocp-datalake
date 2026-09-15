@@ -1,8 +1,8 @@
 # ocp-datalake
 
-Proof of concept: **train and version a model in Databricks, serve it on OpenShift**. Data science publishes a versioned artifact; the platform promotes it, validates it, and exposes an inference endpoint under the same policies as the rest of the workloads.
+Proof of concept: **promote a versioned model onto OpenShift and serve it under cluster policy**. Data science publishes an artifact; the platform validates it, registers it, and exposes an inference endpoint. The **intended** upstream is Databricks MLflow; this sandbox **simulates** that registry (see [Databricks compatibility](#databricks-compatibility)).
 
-The target cluster is a **single AWS g6.16xlarge node** (64 vCPU, 256 GiB, 1× NVIDIA L4 24 GB). Databricks remains the SaaS model registry. OpenShift is the deployment, identity, and GPU plane.
+The target cluster is a **single AWS g6.16xlarge node** (64 vCPU, 256 GiB, 1× NVIDIA L4 24 GB). OpenShift is the deployment, identity, and GPU plane.
 
 Namespace: `ocp-datalake`. Licensed under [Apache License 2.0](LICENSE).
 
@@ -28,7 +28,7 @@ Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token t
 | **Red Hat Build of Keycloak** | Cluster OpenID identity provider (OAuth federation) |
 | **Red Hat Universal Base Image** (Python 3.12) | Custom predictive runtime and pipeline tasks |
 
-Outside Red Hat, the model source is **Databricks MLflow Model Registry** (this PoC simulates it with PVC `databricks-ml-registry` and `apps/model/model.json`).
+Outside Red Hat, the intended model source is **Databricks MLflow / Unity Catalog**. This PoC does **not** call Databricks: it seeds PVC `databricks-ml-registry` from `apps/model/model.json` (hand-written coefficients, not an MLflow directory).
 
 ---
 
@@ -38,7 +38,7 @@ Outside Red Hat, the model source is **Databricks MLflow Model Registry** (this 
 
 Published diagrams are the SVGs under `docs/assets/diagrams/` (`architecture.svg`, `journey.svg`). Brand marks used to compose earlier versions are in `docs/assets/logos/`.
 
-OpenShift does not enter the Databricks workspace. It receives a versioned artifact, materializes it under cluster policy, and serves it. There is **one** L4: do not schedule this CPU model and a GPU workbench or vLLM endpoint on the GPU at the same time.
+OpenShift does not enter the Databricks workspace. In a real bridge it would receive a versioned artifact, materialize it under cluster policy, and serve it. This PoC does that for a **linear JSON stand-in**, not for a `model.pkl`. There is **one** L4: do not schedule this CPU model and a GPU workbench or vLLM endpoint on the GPU at the same time.
 
 ---
 
@@ -56,7 +56,7 @@ Three roles, one artifact (`churn-score` v1), five steps. The consumer never tal
 
 ### 1. Publish the model
 
-The contract is `apps/model/model.json`: `weights`, `bias`, and `threshold`. Name `churn-score`, version `1`.
+The contract is `apps/model/model.json`: `weights`, `bias`, and `threshold`. Name `churn-score`, version `1`. That is a hand-authored linear score, not an MLflow bundle (`MLmodel` + `model.pkl` + env files). Calling it "MLflow-style" only means it is versioned and named like a registry entry.
 
 ### 2. Store the artifact
 
@@ -106,7 +106,50 @@ OpenTLC / RHDP sandbox hostnames rotate. Do not treat a hostname from search res
 
 ## Identity
 
-Cluster OAuth uses RHBK (realm `sso`, client `idp-4-ocp`). The gateway ServiceAccount is an OAuth client (`oauth-redirectreference` to the Route). The pipeline runs as `pipeline`. The handshake is service account plus OIDC, not a personal token in a Secret.
+Cluster OAuth uses RHBK (realm `sso`, client `idp-4-ocp`). The gateway ServiceAccount is an OAuth client (`oauth-redirectreference` to the Route). The pipeline runs as `pipeline`. The handshake is service account plus OIDC, not a personal token in a Secret. Keep that when a real Databricks pull is added: OAuth M2M (Databricks service principal), not a PAT in a Secret.
+
+---
+
+## Databricks compatibility
+
+**Today: high conceptual compatibility, low technical compatibility.** The repo models the flow (registry → promotion → serving under cluster policy). The artifact contract is **not** what Databricks/MLflow produces. Do not point this PoC at a production Model Registry and expect it to run.
+
+### What ships vs what Databricks exports
+
+| This PoC | A real Databricks/MLflow model |
+| --- | --- |
+| One file: `apps/model/model.json` (`weights`, `bias`, `threshold`) | A directory: `MLmodel` (YAML: flavors, signature, `run_id`, `mlflow_version`), `model.pkl` (pickle/cloudpickle), `conda.yaml`, `python_env.yaml`, `requirements.txt`, optional `input_example.json` |
+| **validate** checks JSON keys, then the runtime loads that file | A sklearn `model.pkl` does not fit a ConfigMap (~1 MiB etcd limit) and this UBI Python runtime does not unpickle it — it only scores a linear formula |
+| **seed** writes the JSON onto PVC `databricks-ml-registry` | No Databricks client in this repo. Nothing leaves the cluster. |
+
+`kustomization.yaml` still mounts `model.json` as ConfigMap `model-artifact`. That is fine for ~200 bytes of coefficients. It does not scale to a pickle.
+
+### Compatibility by model type
+
+| Fit | What | What you would do |
+| --- | --- | --- |
+| **High** (almost direct) | Simple linear models where the notebook **exports coefficients by hand** (`model.coef_`, `model.intercept_`) into this JSON | That is `churn-score` v1. It works if data science writes **our** format. It is not "download the model from the registry". |
+| **Medium** (change the runtime) | Standard `python_function` flavors: sklearn, XGBoost, LightGBM | Do not patch `server.py`. Swap the `ServingRuntime`: **MLServer** + `mlserver-mlflow` (native MLflow directory, Open Inference Protocol V2) — OpenShift AI already ships MLServer — **or** convert to ONNX in the notebook (`skl2onnx`) and serve with **OVMS** or **Triton**. Pickle is the usual trap: Databricks sklearn 1.5 / numpy 2.x vs UBI Python 3.12 with other wheels → load fails, or worse, loads and scores differently. ONNX usually wins. |
+| **Low / impractical** | Spark ML (`pyspark.ml`); models that call Feature Store / Unity Catalog lookups at infer time; artifacts that embed DBFS or UC volume paths | Spark needs a JVM + Spark session in the pod (throws away the tiny runtime). Feature-store pyfuncs resolve features against Databricks; outside Databricks they resolve nothing. |
+
+### The other gap: how the artifact would actually arrive
+
+Today the "registry" is a PVC plus a seed Job. There is no Databricks SDK. A real pull has to settle three things this repo does not implement:
+
+1. **Which registry.** Databricks pushed Unity Catalog. Since April 2024, new workspaces whose default catalog is UC have the Workspace Model Registry disabled; that registry is marked for deprecation. With MLflow 3 the default registry URI is `databricks-uc`. A modern workspace identifier is `models:/catalog.schema.churn_score/1`, not `models:/churn-score/1`, and you need UC grants (`USE CATALOG`, `USE SCHEMA`, `EXECUTE` on the model). That changes the promotion step, not a config knob. See [Manage model lifecycle using the Workspace Model Registry (legacy)](https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/workspace-model-registry).
+2. **Authentication.** The OpenShift side of this PoC is service account + OIDC, not a personal token in a Secret. Talking to Databricks still needs Databricks credentials. The decent path is **OAuth M2M** with a Databricks service principal (client ID + secret, or workload identity federation). A PAT in a Secret would undo the identity story.
+3. **Egress.** `NetworkPolicy` is already in the kustomization. A real pull must reach the Databricks control plane and the artifact bucket (S3). Today nothing egresses, so the policies never had to allow that.
+
+### What would close the gap (additive; this PoC stays)
+
+None of this should replace the JSON path; keep it as the offline fallback.
+
+- A Tekton/KFP task **`databricks-pull`** that calls `mlflow.artifacts.download_artifacts()` against `databricks-uc`, writes the directory onto the PVC (or an ObjectBucketClaim once ODF is present), and leaves today's JSON seed as fallback.
+- Store the real artifact on **PVC/S3**, not a ConfigMap. KServe already mounts `storageUri` from S3; when ODF/NooBaa exists, `scripts/s3_model.py` stops being orphan code.
+- Validate the **`MLmodel` signature** against the HTTP contract (`tenure`, `charges`, `support_tickets`). That is the promotion check that matters. Today's schema check only inspects our own JSON.
+- Keep this section current so nobody assumes a production Databricks registry can be aimed at `churn-score` as-is.
+
+The OpenShift pieces (KServe, RHBK, Tekton/KFP, quota, NetworkPolicy) are the hard part of the demo and they already run. The missing piece is the **real registry bridge**, and that is more work than "this PoC simulates it with a PVC" suggests.
 
 ---
 
@@ -164,7 +207,7 @@ python scripts/build_kfp_manifest.py
 ```
 LICENSE                     Apache License 2.0
 apps/inference/server.py    inference HTTP contract (native + KServe v1)
-apps/model/model.json       MLflow-style artifact
+apps/model/model.json       hand-written linear artifact (not an MLflow directory)
 scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket (not on the live path)
 manifests/                  namespace, quota, DSPA, Model Registry RBAC, Tekton + KFP pipeline, KServe
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines

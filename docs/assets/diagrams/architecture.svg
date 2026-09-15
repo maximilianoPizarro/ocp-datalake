@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="arch-title arch-desc">
   <title id="arch-title">Arquitectura ocp-datalake</title>
-  <desc id="arch-desc">Databricks publica el artefacto; OpenShift lo materializa, registra y sirve. El consumidor solo habla HTTP con la Route.</desc>
+  <desc id="arch-desc">Objetivo: Databricks publica el artefacto. Este PoC simula el registry con un PVC y model.json; OpenShift registra y sirve.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#1b1d21"/>
@@ -18,11 +18,11 @@
   <rect x="40" y="110" width="250" height="220" rx="12" fill="#212427" stroke="#3d3d3d"/>
   <text x="58" y="140" fill="#ff3621" font-family="Segoe UI, sans-serif" font-size="14" font-weight="600">Fuera del cluster</text>
   <text x="58" y="168" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="18">Databricks</text>
-  <text x="58" y="190" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="13">MLflow Model Registry</text>
+  <text x="58" y="190" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="13">objetivo: MLflow / UC</text>
   <rect x="58" y="214" width="214" height="44" rx="6" fill="#2a2d31" stroke="#4d4d4d"/>
-  <text x="70" y="241" fill="#f0ab00" font-family="Consolas, monospace" font-size="12">churn-score v1</text>
-  <text x="58" y="286" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">OpenShift no entra al workspace.</text>
-  <text x="58" y="304" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">Recibe el artefacto versionado.</text>
+  <text x="70" y="241" fill="#f0ab00" font-family="Consolas, monospace" font-size="12">churn-score v1 JSON</text>
+  <text x="58" y="286" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">Hoy no hay cliente Databricks.</text>
+  <text x="58" y="304" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">Seed local: PVC + model.json.</text>
 
   <rect x="340" y="96" width="620" height="488" rx="14" fill="#1f2124" stroke="#ee0000" stroke-opacity=".55"/>
   <text x="360" y="128" fill="#ee0000" font-family="Segoe UI, sans-serif" font-size="16" font-weight="600">Red Hat OpenShift</text>
