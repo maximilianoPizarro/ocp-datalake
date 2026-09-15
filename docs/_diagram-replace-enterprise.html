@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Full replacement architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 1600px; height: 900px; overflow: hidden; background: #fff; }
+    body {
+      font-family: "Red Hat Text", sans-serif;
+      color: #151515;
+      padding: 24px 36px 20px;
+      position: relative;
+    }
+    svg.arrows { position: absolute; inset: 0; width: 1600px; height: 900px; pointer-events: none; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      flex: 1;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: #6a6e73;
+      margin: -8px 0 14px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+      width: 150px;
+      justify-content: flex-end;
+    }
+    .brand img { height: 26px; }
+    .hub {
+      border: 2px solid #8ec8f6;
+      background: #f2f9ff;
+      border-radius: 18px;
+      padding: 14px 16px 12px;
+      height: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .hub-title {
+      font-family: "Red Hat Display", sans-serif;
+      text-align: center;
+      color: #0066cc;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+    .lane {
+      background: #e7f1fa;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      color: #002952;
+      line-height: 1.25;
+    }
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .tile {
+      background: #fff;
+      border: 1.5px solid #d2d2d2;
+      border-radius: 11px;
+      padding: 10px 6px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-height: 108px;
+    }
+    .tile.comm { border-color: #8a8d90; background: #fafafa; }
+    .tile img { height: 32px; max-width: 130px; object-fit: contain; }
+    .tile .name {
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 700;
+      font-size: 11.5px;
+      line-height: 1.2;
+    }
+    .tile .role { font-size: 10px; color: #6a6e73; line-height: 1.25; }
+    .badge {
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6a6e73;
+      border: 1px solid #d2d2d2;
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+    .badge.rh { color: #ee0000; border-color: #ee0000; }
+    .badge.cn { color: #0066cc; border-color: #0066cc; }
+    .gap-box {
+      border: 2px dashed #c9190b;
+      background: #fff5f5;
+      border-radius: 12px;
+      padding: 10px 14px;
+      text-align: center;
+      font-size: 12px;
+      color: #151515;
+      line-height: 1.35;
+    }
+    .gap-box strong { color: #c9190b; font-family: "Red Hat Display", sans-serif; }
+    .legend {
+      position: absolute;
+      left: 36px;
+      bottom: 18px;
+      border: 1.5px solid #b8bbbe;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 11px;
+      background: #fff;
+      display: flex;
+      gap: 18px;
+    }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .sw { width: 20px; height: 12px; border-radius: 3px; display: inline-block; }
+    .sw.rh { background: #fff; border: 1.5px solid #ee0000; }
+    .sw.cn { background: #fafafa; border: 1.5px solid #0066cc; }
+  </style>
+</head>
+<body>
+  <svg class="arrows" viewBox="0 0 1600 900" aria-hidden="true">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" fill="#0066cc"/>
+      </marker>
+    </defs>
+    <path d="M200 280 L360 280 L360 340" fill="none" stroke="#0066cc" stroke-width="2" marker-end="url(#ah)"/>
+    <path d="M200 430 L360 430 L360 490" fill="none" stroke="#0066cc" stroke-width="2" marker-end="url(#ah)"/>
+    <path d="M200 580 L360 580 L360 640" fill="none" stroke="#0066cc" stroke-width="2" marker-end="url(#ah)"/>
+    <path d="M200 730 L360 730 L360 790" fill="none" stroke="#0066cc" stroke-width="2" marker-end="url(#ah)"/>
+  </svg>
+
+  <header>
+    <span style="width:150px"></span>
+    <div>
+      <h1>Full replacement — lakehouse &amp; ML platform on OpenShift</h1>
+      <p class="subtitle">No Databricks dependency · Red Hat portfolio + selected community projects</p>
+    </div>
+    <div class="brand"><img src="assets/logos/redhat.svg" alt="">Red Hat</div>
+  </header>
+
+  <div class="hub">
+    <div class="hub-title">Red Hat OpenShift 4.20 · OpenShift AI 3.5 · single control plane</div>
+
+    <div class="row">
+      <div class="lane">Develop</div>
+      <div class="tiles">
+        <div class="tile">
+          <img src="assets/logos/openshift-ai.svg" alt="OpenShift AI">
+          <div class="name">OpenShift AI workbenches</div>
+          <div class="role">Jupyter · DSP notebooks</div>
+          <span class="badge rh">Red Hat</span>
+        </div>
+        <div class="tile comm">
+          <img src="assets/logos/jupyter.svg" alt="Jupyter">
+          <div class="name">JupyterHub</div>
+          <div class="role">Multi-user notebooks</div>
+          <span class="badge cn">Community</span>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/openshift-official.svg" alt="OpenShift">
+          <div class="name">VS Code on cluster</div>
+          <div class="role">Dev workspaces · git push</div>
+          <span class="badge cn">Community</span>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/argo-cd.svg" alt="GitOps">
+          <div class="name">GitOps (Argo CD)</div>
+          <div class="role">Helm · Kustomize · bundles</div>
+          <span class="badge rh">Red Hat</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lane">Train &amp;<br>track</div>
+      <div class="tiles">
+        <div class="tile">
+          <img src="assets/logos/tekton.svg" alt="Pipelines">
+          <div class="name">OpenShift Pipelines</div>
+          <div class="role">Tekton CI/CD for ML</div>
+          <span class="badge rh">Red Hat</span>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/openshift-ai.svg" alt="DSP">
+          <div class="name">Data Science Pipelines</div>
+          <div class="role">KFP runs · experiment history</div>
+          <span class="badge rh">Red Hat</span>
+        </div>
+        <div class="tile comm">
+          <img src="assets/logos/mlflow.svg" alt="MLflow">
+          <div class="name">MLflow Tracking</div>
+          <div class="role">Self-hosted tracking server</div>
+          <span class="badge cn">Community</span>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/openshift-ai.svg" alt="Registry">
+          <div class="name">Model Registry</div>
+          <div class="role">Versioning · approvals</div>
+          <span class="badge rh">Red Hat</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lane">Lakehouse &amp;<br>features</div>
+      <div class="tiles">
+        <div class="tile">
+          <img src="assets/logos/odf.svg" alt="ODF">
+          <div class="name">OpenShift Data Foundation</div>
+          <div class="role">NooBaa S3 · ObjectBucketClaim</div>
+          <span class="badge rh">Red Hat</span>
+        </div>
+        <div class="tile comm">
+          <img src="assets/logos/iceberg.svg" alt="Iceberg">
+          <div class="name">Apache Iceberg</div>
+          <div class="role">Open table format · Delta connectors</div>
+          <span class="badge cn">Community</span>
+        </div>
+        <div class="tile comm">
+          <img src="assets/logos/feast.svg" alt="Feast">
+          <div class="name">Feast Feature Store</div>
+          <div class="role">Online / offline features</div>
+          <span class="badge cn">Community</span>
+        </div>
+        <div class="tile comm">
+          <img src="assets/logos/trino.svg" alt="Trino">
+          <div class="name">Trino SQL</div>
+          <div class="role">Federated queries · warehouses</div>
+          <span class="badge cn">Community</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lane">Serve &amp;<br>govern</div>
+      <div class="tiles">
+        <div class="tile">
+          <img src="assets/logos/kserve.svg" alt="KServe">
+          <div class="name">KServe</div>
+          <div class="role">InferenceService · MLServer · Triton</div>
+          <span class="badge rh">Red Hat</span>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/kuadrant.svg" alt="MaaS">
+          <div class="name">Models-as-a-Service</div>
+          <div class="role">Connectivity Link · rate limits</div>
+          <span class="badge rh">Red Hat</span>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/keycloak-official.svg" alt="RHBK">
+          <div class="name">RHBK + OpenShift OAuth</div>
+          <div class="role">RBAC · SCIM patterns</div>
+          <span class="badge rh">Red Hat</span>
+        </div>
+        <div class="tile comm">
+          <img src="assets/logos/marquez.svg" alt="Lineage">
+          <div class="name">OpenLineage / Marquez</div>
+          <div class="role">Lineage · metadata (not full UC)</div>
+          <span class="badge cn">Community</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="gap-box">
+      <strong>Not replicated:</strong> Unity Catalog grants &amp; managed Spark runtime · remote Databricks Feature Store at inference · DBFS / UC volume paths embedded in artifacts
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw rh"></i> Red Hat product</span>
+    <span><i class="sw cn"></i> Community / upstream</span>
+  </div>
+</body>
+</html>

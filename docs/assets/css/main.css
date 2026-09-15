@@ -325,7 +325,24 @@ table.compat th, table.compat td {
   border-bottom: 1px solid var(--rh-color-border);
 }
 table.compat th { color: var(--rh-color-text-secondary); font-weight: 600; }
-table.compat td:first-child { font-family: var(--rh-font-display); font-weight: 700; white-space: nowrap; width: 4.5rem; }
+#compat table.compat td:first-child {
+  font-family: var(--rh-font-display);
+  font-weight: 700;
+  white-space: nowrap;
+  width: 4.5rem;
+}
+#bridge table.compat.bridge-delta {
+  table-layout: fixed;
+  min-width: 40rem;
+}
+#bridge table.compat.bridge-delta th,
+#bridge table.compat.bridge-delta td {
+  width: 50%;
+}
+#bridge table.compat.bridge-delta td:first-child {
+  font-family: var(--rh-font-display);
+  font-weight: 600;
+}
 
 .commands h3 {
   font-family: var(--rh-font-display);
@@ -333,24 +350,55 @@ table.compat td:first-child { font-family: var(--rh-font-display); font-weight: 
   font-weight: 700;
   margin: 1.25rem 0 0.5rem;
 }
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0.75rem 0 1rem;
+  -webkit-overflow-scrolling: touch;
+}
 table.mapping {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.84rem;
-  margin: 0.75rem 0 1rem;
-  display: block;
-  overflow-x: auto;
+  margin: 0;
+  table-layout: fixed;
 }
-table.mapping thead,
-table.mapping tbody { display: table; width: 100%; min-width: 52rem; }
 table.mapping th, table.mapping td {
   text-align: left;
   vertical-align: top;
-  padding: 0.5rem 0.55rem;
+  padding: 0.5rem 0.6rem;
   border-bottom: 1px solid var(--rh-color-border);
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
-table.mapping th { color: var(--rh-color-text-secondary); font-weight: 600; white-space: nowrap; }
-table.mapping td:first-child { font-family: var(--rh-font-display); font-weight: 600; min-width: 9rem; }
+table.mapping th { color: var(--rh-color-text-secondary); font-weight: 600; }
+table.mapping col.cap { width: 15%; }
+table.mapping col.poc { width: 16%; }
+table.mapping col.rh { width: 17%; }
+table.mapping col.comm { width: 16%; }
+table.mapping col.gap { width: 36%; }
+table.mapping td:first-child { font-family: var(--rh-font-display); font-weight: 600; }
+
+.enterprise-diagram {
+  margin: 1rem 0 1.25rem;
+  border: 1px solid var(--rh-color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+.enterprise-diagram img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.enterprise-diagram figcaption {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9rem;
+  color: var(--rh-color-text-secondary);
+  border-top: 1px solid var(--rh-color-border);
+  background: var(--rh-color-muted);
+}
 
 footer {
   max-width: 1180px;

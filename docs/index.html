@@ -350,7 +350,8 @@ curl -sk "$MAAS_URL/v1/chat/completions" \
 
       <h3>What would change in this repo</h3>
       <p>Additive only — keep the JSON seed path as an offline fallback.</p>
-      <table class="compat">
+      <div class="table-wrap">
+      <table class="compat bridge-delta">
         <thead><tr><th>Today (PoC)</th><th>Real bridge</th></tr></thead>
         <tbody>
           <tr><td>Task <code>seed</code> copies <code>apps/model/model.json</code> onto PVC <code>databricks-ml-registry</code></td><td>New task <code>databricks-pull</code>: <code>mlflow.artifacts.download_artifacts()</code> against <code>databricks-uc</code> (<code>models:/catalog.schema.churn_score/1</code>). JSON seed remains fallback.</td></tr>
@@ -362,12 +363,21 @@ curl -sk "$MAAS_URL/v1/chat/completions" \
           <tr><td>Model Registry URI <code>pvc://…</code></td><td>Register in <code>ocp-datalake-registry</code> with UC source URI; promotion still Tekton/KFP + GitOps.</td></tr>
         </tbody>
       </table>
+      </div>
       <p><strong>Out of scope:</strong> Spark ML in the predictor, Feature Store lookups at inference time, DBFS or UC volume paths embedded in the artifact.</p>
       <p><strong>Flow:</strong> Databricks UC → OAuth M2M pull (Tekton/KFP) → ODF or PVC → RHOAI Model Registry → KServe (MLServer) → Route <code>/predict</code>.</p>
 
       <h3>Databricks capabilities vs Red Hat and community</h3>
       <p>No 1:1 parity. This table is honest about what this PoC already runs and what would replace each Databricks surface.</p>
+      <div class="table-wrap">
       <table class="mapping">
+        <colgroup>
+          <col class="cap">
+          <col class="poc">
+          <col class="rh">
+          <col class="comm">
+          <col class="gap">
+        </colgroup>
         <thead>
           <tr><th>Databricks capability</th><th>This PoC</th><th>Red Hat</th><th>Community</th><th>Gap note</th></tr>
         </thead>
@@ -386,6 +396,17 @@ curl -sk "$MAAS_URL/v1/chat/completions" \
           <tr><td>Asset Bundles / IaC</td><td>GitOps app-of-apps</td><td>OpenShift GitOps (Argo CD)</td><td>Helm, Kustomize (already in repo)</td><td>Cluster desired state is git; Databricks bundles stay in Databricks.</td></tr>
         </tbody>
       </table>
+      </div>
+      <h3>Enterprise architecture views</h3>
+      <p>PatternFly-style reference diagrams with official Red Hat product marks and community equivalents. Source: <code>docs/_diagram-bridge-enterprise.html</code>, <code>docs/_diagram-replace-enterprise.html</code> (render with <code>python scripts/render-diagrams.py</code>).</p>
+      <figure class="enterprise-diagram">
+        <img src="assets/diagrams/bridge-enterprise.png" alt="Enterprise bridge: Databricks cloud plane on the left, OpenShift pull store govern serve on the right, predictive and GenAI consumer paths below" width="1600" height="900" loading="lazy">
+        <figcaption><strong>Combined (bridge).</strong> Databricks trains and catalogs; OpenShift pulls via OAuth M2M, stores on ODF, registers, and serves under cluster policy.</figcaption>
+      </figure>
+      <figure class="enterprise-diagram">
+        <img src="assets/diagrams/replace-enterprise.png" alt="Full replacement: develop, train, lakehouse, and serve layers entirely on OpenShift with Red Hat and community products" width="1600" height="900" loading="lazy">
+        <figcaption><strong>Full replacement.</strong> No Databricks dependency — RHOAI, ODF, Pipelines, and GitOps plus Feast, Iceberg, Trino, and self-hosted MLflow. Unity Catalog and managed Spark are not replicated.</figcaption>
+      </figure>
       <p><strong>Bridge vs replace:</strong> <em>Bridge</em> — Databricks trains and registers; OpenShift pulls, governs, and serves (this document). <em>Replace</em> — RHOAI + ODF + Pipelines + Feast/Iceberg on OpenShift; you lose UC and the managed Spark runtime. This PoC demonstrates the bridge story.</p>
     </section>
   </main>
