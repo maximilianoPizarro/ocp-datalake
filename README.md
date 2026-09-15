@@ -6,6 +6,8 @@ The target cluster is a **single AWS g6.16xlarge node** (64 vCPU, 256 GiB, 1× N
 
 Namespace: `ocp-datalake`. Licensed under [Apache License 2.0](LICENSE).
 
+**Walkthrough (GitHub Pages):** [maximilianoPizarro.github.io/ocp-datalake](https://maximilianoPizarro.github.io/ocp-datalake/) — interactive demo (Prev / Next / Fullscreen) with live OpenShift and OpenShift AI screenshots. Deploys from `docs/` on push to `main` (Actions → Pages).
+
 Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token that was pasted into a chat or a ticket.
 
 ---
@@ -32,9 +34,9 @@ Outside Red Hat, the model source is **Databricks MLflow Model Registry** (this 
 
 ## Architecture
 
-![Architecture: Databricks on the left; OpenShift in the center with ODF, Pipelines, GitOps, OpenShift AI/KServe, Serverless, and Service Mesh; Route on the right; Red Hat Build of Keycloak as IdP](docs/assets/diagrams/architecture.png)
+![Architecture: Databricks on the left; OpenShift in the center with ODF, Pipelines, GitOps, OpenShift AI/KServe, Serverless, and Service Mesh; Route on the right; Red Hat Build of Keycloak as IdP](docs/assets/diagrams/architecture.svg)
 
-Published diagrams are the PNGs under `docs/assets/diagrams/` (`architecture.png`, `journey.png`). There is no draw.io/Excalidraw source; brand marks used to compose them are in `docs/assets/logos/`.
+Published diagrams are the SVGs under `docs/assets/diagrams/` (`architecture.svg`, `journey.svg`). Brand marks used to compose earlier versions are in `docs/assets/logos/`.
 
 OpenShift does not enter the Databricks workspace. It receives a versioned artifact, materializes it under cluster policy, and serves it. There is **one** L4: do not schedule this CPU model and a GPU workbench or vLLM endpoint on the GPU at the same time.
 
@@ -42,7 +44,7 @@ OpenShift does not enter the Databricks workspace. It receives a versioned artif
 
 ## Journey
 
-![Journey: publish the model, store the artifact, pipeline and GitOps, serve with KServe on the L4, consume /predict](docs/assets/diagrams/journey.png)
+![Journey: publish the model, store the artifact, pipeline and GitOps, serve with KServe on the L4, consume /predict](docs/assets/diagrams/journey.svg)
 
 Three roles, one artifact (`churn-score` v1), five steps. The consumer never talks to Databricks or S3: HTTP only.
 
@@ -167,9 +169,11 @@ scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket (not on 
 manifests/                  namespace, quota, DSPA, Model Registry RBAC, Tekton + KFP pipeline, KServe
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
 scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py
-docs/assets/diagrams/       published architecture and journey PNGs
-docs/assets/logos/          brand marks used to compose those PNGs
+docs/                       GitHub Pages site (journey + screenshots)
+docs/assets/diagrams/       architecture and journey SVGs
+docs/assets/screenshots/    live OpenShift and OpenShift AI captures
+docs/assets/logos/          brand marks
 tests/                      stdlib unittest for the inference contract
-.github/workflows/ci.yaml   unit tests on push and pull request
+.github/workflows/          unit tests + GitHub Pages deploy
 kustomization.yaml
 ```

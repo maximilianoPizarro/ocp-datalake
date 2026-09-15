@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 280" role="img" aria-labelledby="j-title j-desc">
+  <title id="j-title">Journey churn-score</title>
+  <desc id="j-desc">Cinco pasos: publicar, almacenar, promover, servir y consumir.</desc>
+  <rect width="1280" height="280" fill="#151515"/>
+  <text x="40" y="36" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="18" font-weight="600">Un artefacto, tres roles, cinco pasos</text>
+  <text x="40" y="58" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="13">Data scientist - platform engineer - consumidor. El contrato es model.json (weights, bias, threshold).</text>
+
+  <rect x="40" y="88" width="220" height="148" rx="10" fill="#212427" stroke="#3d3d3d"/>
+  <circle cx="64" cy="116" r="14" fill="#ee0000"/>
+  <text x="59" y="121" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700">1</text>
+  <text x="86" y="122" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">Data scientist</text>
+  <text x="56" y="156" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="16">Publicar</text>
+  <text x="56" y="180" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">Entrenar y versionar</text>
+  <text x="56" y="198" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">churn-score v1 en MLflow.</text>
+  <text x="56" y="216" fill="#73c5c5" font-family="Consolas, monospace" font-size="11">apps/model/model.json</text>
+
+  <rect x="280" y="88" width="220" height="148" rx="10" fill="#212427" stroke="#3d3d3d"/>
+  <circle cx="304" cy="116" r="14" fill="#ee0000"/>
+  <text x="299" y="121" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700">2</text>
+  <text x="326" y="122" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">Plataforma</text>
+  <text x="296" y="156" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="16">Almacenar</text>
+  <text x="296" y="180" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">PVC databricks-ml-registry</text>
+  <text x="296" y="198" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">(stand-in de ODF/S3).</text>
+  <text x="296" y="216" fill="#73c5c5" font-family="Consolas, monospace" font-size="11">models/churn-score/1</text>
+
+  <rect x="520" y="88" width="220" height="148" rx="10" fill="#212427" stroke="#3d3d3d"/>
+  <circle cx="544" cy="116" r="14" fill="#ee0000"/>
+  <text x="539" y="121" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700">3</text>
+  <text x="566" y="122" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">Plataforma</text>
+  <text x="536" y="156" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="16">Promover</text>
+  <text x="536" y="180" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">KFP dashboard o Tekton.</text>
+  <text x="536" y="198" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">validate aborta el resto.</text>
+  <text x="536" y="216" fill="#73c5c5" font-family="Segoe UI, sans-serif" font-size="11">register + rollout</text>
+
+  <rect x="760" y="88" width="220" height="148" rx="10" fill="#212427" stroke="#3d3d3d"/>
+  <circle cx="784" cy="116" r="14" fill="#ee0000"/>
+  <text x="779" y="121" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700">4</text>
+  <text x="806" y="122" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">OpenShift AI</text>
+  <text x="776" y="156" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="16">Servir</text>
+  <text x="776" y="180" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">KServe churn-score en CPU.</text>
+  <text x="776" y="198" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">La L4 queda para Llama.</text>
+  <text x="776" y="216" fill="#73c5c5" font-family="Segoe UI, sans-serif" font-size="11">InferenceService Ready</text>
+
+  <rect x="1000" y="88" width="240" height="148" rx="10" fill="#212427" stroke="#3e8635"/>
+  <circle cx="1024" cy="116" r="14" fill="#3e8635"/>
+  <text x="1019" y="121" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="13" font-weight="700">5</text>
+  <text x="1046" y="122" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">Consumidor</text>
+  <text x="1016" y="156" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="16">Consumir</text>
+  <text x="1016" y="180" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">POST /predict  |  /v1 KServe</text>
+  <text x="1016" y="198" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="12">tenure 12 / charges 70 -&gt;</text>
+  <text x="1016" y="216" fill="#3e8635" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">churn: true  (~ 0.60)</text>
+
+  <g fill="none" stroke="#4d4d4d" stroke-width="2">
+    <path d="M260 162 H280"/>
+    <path d="M500 162 H520"/>
+    <path d="M740 162 H760"/>
+    <path d="M980 162 H1000"/>
+  </g>
+</svg>

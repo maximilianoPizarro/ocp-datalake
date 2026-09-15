@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Journey | ocp-datalake</title>
+  <meta name="description" content="Demo interactiva: de Databricks a /predict en OpenShift AI. Capturas reales del clúster.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./">
+      <img src="assets/logos/redhat.svg" alt="">
+      ocp-datalake
+    </a>
+    <nav>
+      <a href="./" aria-current="page">Journey</a>
+      <a class="hide-sm" href="https://github.com/maximilianoPizarro/ocp-datalake">Código</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Databricks → OpenShift AI</h1>
+    <p class="lede">
+      Un artefacto versionado entra al clúster, se valida, se registra y se sirve.
+      El consumidor solo habla HTTP. Capturas del sandbox OpenTLC, 15 sep 2026.
+    </p>
+
+    <nav class="chapters" aria-label="Capítulos">
+      <button type="button" data-slide="0" aria-current="true">Mapa</button>
+      <button type="button" data-slide="2">OpenShift</button>
+      <button type="button" data-slide="10">OpenShift AI</button>
+      <button type="button" data-slide="16">/predict</button>
+    </nav>
+
+    <div id="journey-carousel" class="journey-carousel" tabindex="0" aria-roledescription="carrusel">
+      <div class="journey-viewport">
+
+        <figure class="journey-slide is-active">
+          <img class="is-diagram" src="assets/diagrams/architecture.svg" alt="Databricks a la izquierda, OpenShift en el centro, Route /predict a la derecha" width="1280" height="720">
+          <figcaption>
+            <span class="slide-num">Step 01</span>
+            <strong>El plano</strong>
+            <span class="desc">OpenShift no entra a Databricks. Recibe <code>model.json</code>, lo materializa en un PVC, lo registra y lo sirve en CPU. La L4 queda con Llama.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img class="is-diagram" src="assets/diagrams/journey.svg" alt="Cinco pasos: publicar, almacenar, promover, servir, consumir" width="1280" height="280">
+          <figcaption>
+            <span class="slide-num">Step 02</span>
+            <strong>Cinco pasos</strong>
+            <span class="desc">Publicar → almacenar → promover → servir → consumir. Si <code>validate</code> falla, no corren register ni rollout.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/01-openshift-project.png" alt="Overview del proyecto ocp-datalake Active" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 03</span>
+            <strong>Proyecto ocp-datalake</strong>
+            <span class="desc">Namespace Active en OpenShift 4.20. Diez Deployments, diez pods. Acá viven el predictor, DSPA y el PVC del modelo.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/02-openshift-pvcs.png" alt="PVCs Bound: databricks-ml-registry, mariadb-dspa, minio-dspa" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 04</span>
+            <strong>El artefacto vive en un PVC</strong>
+            <span class="desc"><code>databricks-ml-registry</code> es el stand-in de ODF/S3. MinIO y MariaDB son solo historial de DSPA (dev).</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/03-openshift-pipelineruns.png" alt="PipelineRun Tekton notebook-to-openshift Succeeded" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 05</span>
+            <strong>Gemelo Tekton</strong>
+            <span class="desc"><code>notebook-to-openshift-zxjz9</code> Succeeded en 45 s. Misma promoción que KFP, disparada con <code>oc create -f manifests/08-pipelinerun.yaml</code>.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/04-openshift-pipelinerun-graph.png" alt="Grafo seed, pull, register, rollout" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 06</span>
+            <strong>seed → pull → register → rollout</strong>
+            <span class="desc">La task <code>pull</code> valida el contrato. Artefacto inválido: el InferenceService sigue sirviendo la última versión buena.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/05-openshift-inferenceservice.png" alt="InferenceService churn-score Ready True" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 07</span>
+            <strong>KServe Ready</strong>
+            <span class="desc"><code>InferenceService/churn-score</code> Ready True. Runtime UBI Python, una réplica, sin request de GPU.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/06-openshift-routes.png" alt="Routes inference y Data Science Pipelines Accepted" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 08</span>
+            <strong>Route inference</strong>
+            <span class="desc">oauth-proxy delante del predictor. <code>/predict</code> y <code>/healthz</code> sin login en este PoC. El hostname OpenTLC rota.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/07-openshift-llama-is.png" alt="llama-32-3b-instruct Ready en my-first-model" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 09</span>
+            <strong>La L4 no es de churn-score</strong>
+            <span class="desc"><code>llama-32-3b-instruct</code> en <code>my-first-model</code> retiene la única GPU. El modelo lineal no la disputa.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/08-openshift-node.png" alt="Nodo g6.16xlarge Ready control-plane y worker" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 10</span>
+            <strong>Un nodo</strong>
+            <span class="desc">g6.16xlarge Ready: control-plane + worker, 64 cores. PoC de un solo nodo, no HA.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/09-rhoai-home.png" alt="Home de OpenShift AI con proyecto ocp-datalake" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 11</span>
+            <strong>OpenShift AI 3.5</strong>
+            <span class="desc">Mismo proyecto, otra superficie. Admin federado por RHBK. Desde acá se dispara el pipeline KFP.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/10-rhoai-project.png" alt="Proyecto ocp-datalake con pipeline notebook-to-openshift y churn-score Ready" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 12</span>
+            <strong>Pipeline + modelo en el mismo ns</strong>
+            <span class="desc"><code>notebook-to-openshift</code> (8 runs) y <code>churn-score</code> Ready. Single-model serving enabled.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/11-rhoai-kfp-run.png" alt="Run KFP notebook-to-openshift-verify7 Complete" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 13</span>
+            <strong>Run KFP Complete</strong>
+            <span class="desc"><code>verify7</code>: seed-model → validate-model → register-model → rollout-inference. SA <code>pipeline-runner-dspa</code>.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/12-rhoai-model-registry.png" alt="churn-score en ocp-datalake-registry" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 14</span>
+            <strong>Model Registry</strong>
+            <span class="desc">Instancia <code>ocp-datalake-registry</code> (HTTPS :8443). <code>churn-score</code> latest version 1.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/13-rhoai-churn-score-registry.png" alt="Detalle churn-score versión 1" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 15</span>
+            <strong>churn-score v1</strong>
+            <span class="desc">«Linear churn-score artifact promoted from ocp-datalake». URI <code>pvc://databricks-ml-registry/models/churn-score/1</code>.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/14-rhoai-deployments.png" alt="Deployment churn-score sin hardware profile GPU" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 16</span>
+            <strong>Deployments</strong>
+            <span class="desc">Runtime lineal, <em>No hardware profile</em>. La GPU no está en este predictor.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img class="is-diagram" src="assets/screenshots/15-predict.png" alt="POST /predict responde churn true probability 0.5987" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 17</span>
+            <strong>Consumir /predict</strong>
+            <span class="desc">tenure 12 / charges 70 / tickets 3 → <code>churn: true</code> (0.5987). El consumidor nunca habla con Databricks.</span>
+          </figcaption>
+        </figure>
+
+      </div>
+      <div class="journey-controls">
+        <div class="journey-nav">
+          <button type="button" class="journey-btn" id="journey-prev" aria-label="Paso anterior">← Prev</button>
+          <button type="button" class="journey-btn" id="journey-next" aria-label="Paso siguiente">Next →</button>
+          <button type="button" class="journey-btn" id="journey-fs" aria-label="Pantalla completa" aria-pressed="false">Fullscreen</button>
+        </div>
+        <div class="journey-dots" id="journey-dots" role="tablist" aria-label="Pasos"></div>
+        <span class="journey-status" id="journey-status" aria-live="polite">1 / 17</span>
+      </div>
+    </div>
+    <p class="hint">← → para avanzar · F pantalla completa · clic en la captura para ampliar</p>
+
+    <section class="commands" id="commands">
+      <h2>Quick commands</h2>
+      <p>Resolvé el Route desde el clúster al que estás logueado. Los FQDN OpenTLC rotan.</p>
+      <pre>ROUTE=https://$(oc get route inference -n ocp-datalake -o jsonpath='{.spec.host}')
+curl -sk -H 'Content-Type: application/json' \
+  -d '{"tenure":12,"charges":70,"support_tickets":3}' \
+  "$ROUTE/predict"</pre>
+    </section>
+  </main>
+
+  <footer>
+    Capturas reales · OpenShift 4.20 / OpenShift AI 3.5 ·
+    <a href="https://github.com/maximilianoPizarro/ocp-datalake">maximilianoPizarro/ocp-datalake</a>
+  </footer>
+  <script src="assets/js/carousel.js"></script>
+</body>
+</html>
