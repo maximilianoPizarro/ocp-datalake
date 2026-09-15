@@ -327,6 +327,31 @@ table.compat th, table.compat td {
 table.compat th { color: var(--rh-color-text-secondary); font-weight: 600; }
 table.compat td:first-child { font-family: var(--rh-font-display); font-weight: 700; white-space: nowrap; width: 4.5rem; }
 
+.commands h3 {
+  font-family: var(--rh-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem;
+}
+table.mapping {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  margin: 0.75rem 0 1rem;
+  display: block;
+  overflow-x: auto;
+}
+table.mapping thead,
+table.mapping tbody { display: table; width: 100%; min-width: 52rem; }
+table.mapping th, table.mapping td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5rem 0.55rem;
+  border-bottom: 1px solid var(--rh-color-border);
+}
+table.mapping th { color: var(--rh-color-text-secondary); font-weight: 600; white-space: nowrap; }
+table.mapping td:first-child { font-family: var(--rh-font-display); font-weight: 600; min-width: 9rem; }
+
 footer {
   max-width: 1180px;
   margin: 0 auto;

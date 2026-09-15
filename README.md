@@ -230,6 +230,23 @@ None of this should replace the JSON path; keep it as the offline fallback.
 
 The OpenShift pieces (KServe, RHBK, Tekton/KFP, quota, NetworkPolicy) are the hard part of the demo and they already run. The missing piece is the **real registry bridge**, and that is more work than "this PoC simulates it with a PVC" suggests.
 
+**Full bridge doc (GitHub Pages):** [Databricks bridge](https://maximilianoPizarro.github.io/ocp-datalake/#bridge) — integration delta and product mapping. Summary:
+
+| Databricks capability | Red Hat (this PoC) | Community / gap |
+| --- | --- | --- |
+| Notebooks / workspace | OpenShift AI workbenches | VS Code on cluster |
+| Jobs / Workflows | OpenShift Pipelines, Data Science Pipelines | Argo Workflows; GitOps does not run training |
+| MLflow Tracking | KFP / DSPA run metadata | Self-hosted MLflow; no RH tracking product |
+| Model Registry + UC models | OpenShift AI Model Registry (`ocp-datalake-registry`) | UC grants stay on Databricks; pull via `databricks-uc` |
+| Unity Catalog | RBAC + GitOps + Model Registry | OpenLineage/Marquez; **no full UC equivalent** |
+| Feature Store | — (preview in some RHOAI releases) | Feast; no remote Databricks lookups off-platform |
+| Delta / lakehouse | ODF target (`scripts/s3_model.py`); sandbox uses PVC | Iceberg, Trino, Delta connectors |
+| Model Serving | KServe + Models-as-a-Service | vLLM/Triton via RHOAI runtimes |
+| Identity | RHBK + oauth-proxy | Databricks OAuth M2M for pull (separate from cluster IdP) |
+| IaC / bundles | OpenShift GitOps (Argo CD) | Helm/Kustomize; Databricks Asset Bundles stay in Databricks |
+
+**Bridge vs replace:** keep Databricks for train/register and OpenShift for pull/govern/serve (this repo), or move lakehouse + serving to RHOAI/ODF and lose UC and managed Spark.
+
 ---
 
 ## Try the current PoC

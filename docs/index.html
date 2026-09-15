@@ -40,6 +40,7 @@
       <button type="button" data-slide="24">curl</button>
       <button type="button" data-slide="26">GitOps</button>
       <a href="#compat">Compat</a>
+      <a href="#bridge">Bridge</a>
     </nav>
 
     <div id="journey-carousel" class="journey-carousel" tabindex="0" aria-roledescription="carousel">
@@ -340,7 +341,52 @@ curl -sk "$MAAS_URL/v1/chat/completions" \
           <tr><td>Low</td><td>Spark ML, Feature Store / Unity Catalog at inference, DBFS paths or UC volumes.</td></tr>
         </tbody>
       </table>
-      <p>The real bridge is still missing: Unity Catalog (<code>models:/catalog.schema.model/1</code>), OAuth M2M (not a PAT in a Secret), and egress. Detail in the <a href="https://github.com/maximilianoPizarro/ocp-datalake#databricks-compatibility">README</a>.</p>
+      <p>Artifact contract and model-type fit only. For the real pull path and product mapping, see <a href="#bridge">Databricks bridge</a> below or the <a href="https://github.com/maximilianoPizarro/ocp-datalake#databricks-compatibility">README</a>.</p>
+    </section>
+
+    <section class="commands" id="bridge">
+      <h2>Databricks bridge</h2>
+      <p>OpenShift <strong>never enters</strong> the Databricks workspace. In a real integration the cluster <strong>pulls</strong> a versioned artifact, validates it, registers it, and serves it under the same policies as the rest of the workloads. Databricks stays the training and catalog plane; OpenShift is deployment, identity, and inference.</p>
+
+      <h3>What would change in this repo</h3>
+      <p>Additive only — keep the JSON seed path as an offline fallback.</p>
+      <table class="compat">
+        <thead><tr><th>Today (PoC)</th><th>Real bridge</th></tr></thead>
+        <tbody>
+          <tr><td>Task <code>seed</code> copies <code>apps/model/model.json</code> onto PVC <code>databricks-ml-registry</code></td><td>New task <code>databricks-pull</code>: <code>mlflow.artifacts.download_artifacts()</code> against <code>databricks-uc</code> (<code>models:/catalog.schema.churn_score/1</code>). JSON seed remains fallback.</td></tr>
+          <tr><td>No Databricks SDK or credentials</td><td>Databricks service principal <strong>OAuth M2M</strong> (not a PAT in git). Secret via External Secrets or cluster-local store. OpenShift side stays RHBK + service accounts.</td></tr>
+          <tr><td><code>NetworkPolicy</code> with no egress</td><td>Allow egress to the Databricks control plane and artifact bucket (S3).</td></tr>
+          <tr><td>PVC stand-in for registry</td><td>Prefer <strong>ODF NooBaa <code>ObjectBucketClaim</code></strong>; <code>scripts/s3_model.py</code> becomes the live helper. KServe <code>storageUri</code> from S3.</td></tr>
+          <tr><td><code>validate</code> checks JSON keys</td><td>Validate <code>MLmodel</code> signature vs HTTP contract (<code>tenure</code>, <code>charges</code>, <code>support_tickets</code>).</td></tr>
+          <tr><td>UBI Python <code>server.py</code> linear runtime</td><td><strong>MLServer + mlserver-mlflow</strong> (native MLflow directory) or ONNX + OVMS/Triton. Do not unpickle into <code>server.py</code>. Watch sklearn/numpy versions: Databricks wheels vs UBI 3.12.</td></tr>
+          <tr><td>Model Registry URI <code>pvc://…</code></td><td>Register in <code>ocp-datalake-registry</code> with UC source URI; promotion still Tekton/KFP + GitOps.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Out of scope:</strong> Spark ML in the predictor, Feature Store lookups at inference time, DBFS or UC volume paths embedded in the artifact.</p>
+      <p><strong>Flow:</strong> Databricks UC → OAuth M2M pull (Tekton/KFP) → ODF or PVC → RHOAI Model Registry → KServe (MLServer) → Route <code>/predict</code>.</p>
+
+      <h3>Databricks capabilities vs Red Hat and community</h3>
+      <p>No 1:1 parity. This table is honest about what this PoC already runs and what would replace each Databricks surface.</p>
+      <table class="mapping">
+        <thead>
+          <tr><th>Databricks capability</th><th>This PoC</th><th>Red Hat</th><th>Community</th><th>Gap note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Notebooks / workspace</td><td>Not used (artifact is static JSON)</td><td>OpenShift AI workbenches (Jupyter)</td><td>VS Code on cluster, JupyterHub</td><td>Training stays in Databricks or moves to RHOAI notebooks.</td></tr>
+          <tr><td>Jobs / Workflows</td><td>Tekton + KFP promotion only</td><td>OpenShift Pipelines, Data Science Pipelines</td><td>Argo Workflows</td><td>GitOps installs; it does not run training jobs.</td></tr>
+          <tr><td>MLflow Tracking</td><td>Not connected</td><td>KFP run metadata, DSPA history (dev MinIO here)</td><td>Self-hosted MLflow Tracking server</td><td>No Red Hat–branded MLflow Tracking product.</td></tr>
+          <tr><td>Model Registry (legacy + UC models)</td><td>PVC + RHOAI <code>ocp-datalake-registry</code></td><td>OpenShift AI Model Registry</td><td>MLflow Registry (if self-hosted)</td><td>UC grants and <code>databricks-uc</code> URI are on the Databricks side.</td></tr>
+          <tr><td>Unity Catalog</td><td>Simulated naming only</td><td>OpenShift RBAC, GitOps, Model Registry</td><td>OpenLineage/Marquez, OpenMetadata</td><td><strong>No full UC equivalent.</strong> Lineage is separate tooling.</td></tr>
+          <tr><td>Feature Store</td><td>Not used</td><td>Feature Store (tech preview in some RHOAI releases — verify 3.5)</td><td>Feast</td><td>Remote Databricks Feature Store lookups at inference do not work off-platform.</td></tr>
+          <tr><td>Delta / lakehouse / DBFS</td><td>PVC only (no ODF on sandbox)</td><td>OpenShift Data Foundation (NooBaa/S3)</td><td>Apache Iceberg, Delta connectors, Trino</td><td><code>scripts/s3_model.py</code> is ready for OBC; not wired in Tekton yet.</td></tr>
+          <tr><td>Model Serving</td><td>KServe <code>churn-score</code> + MaaS LLM path</td><td>KServe, Models-as-a-Service, Connectivity Link</td><td>vLLM, Triton (via RHOAI runtimes)</td><td>Databricks Model Serving ≈ KServe/MaaS, not the registry.</td></tr>
+          <tr><td>SQL warehouses</td><td>Not used</td><td>—</td><td>Trino, Spark SQL</td><td>No Red Hat SQL warehouse 1:1.</td></tr>
+          <tr><td>GenAI / Mosaic</td><td>MaaS CPU simulator; L4 on Llama KServe</td><td>MaaS, OpenShift AI serving</td><td>vLLM, Hugging Face stacks</td><td>Llama Stack is <strong>Removed</strong> on this cluster by design.</td></tr>
+          <tr><td>Identity / SCIM</td><td>RHBK + oauth-proxy on Route</td><td>Red Hat Build of Keycloak, OpenShift OAuth</td><td>Keycloak upstream patterns</td><td>Databricks SP OAuth M2M is separate from cluster IdP.</td></tr>
+          <tr><td>Asset Bundles / IaC</td><td>GitOps app-of-apps</td><td>OpenShift GitOps (Argo CD)</td><td>Helm, Kustomize (already in repo)</td><td>Cluster desired state is git; Databricks bundles stay in Databricks.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Bridge vs replace:</strong> <em>Bridge</em> — Databricks trains and registers; OpenShift pulls, governs, and serves (this document). <em>Replace</em> — RHOAI + ODF + Pipelines + Feast/Iceberg on OpenShift; you lose UC and the managed Spark runtime. This PoC demonstrates the bridge story.</p>
     </section>
   </main>
 
