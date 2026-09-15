@@ -5,7 +5,7 @@ metadata:
   namespace: models-as-a-service
   annotations:
     openshift.io/display-name: Simulator Free Tier
-    openshift.io/description: Free tier: 100 tokens/min for all authenticated users
+    openshift.io/description: "Free tier: 100 tokens/min for all authenticated users"
   labels:
     app.kubernetes.io/part-of: ocp-datalake-maas
 spec:
