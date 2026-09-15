@@ -183,6 +183,7 @@ spec:
   tasks:
     - name: seed
       taskRef:
+        kind: Task
         name: seed-databricks-registry
       workspaces:
         - name: assets
@@ -192,6 +193,7 @@ spec:
     - name: pull
       runAfter: ["seed"]
       taskRef:
+        kind: Task
         name: pull-validate-model
       workspaces:
         - name: assets
@@ -203,6 +205,7 @@ spec:
     - name: register
       runAfter: ["pull"]
       taskRef:
+        kind: Task
         name: register-model-registry
       workspaces:
         - name: assets
@@ -210,4 +213,5 @@ spec:
     - name: rollout
       runAfter: ["register"]
       taskRef:
+        kind: Task
         name: rollout-inference
