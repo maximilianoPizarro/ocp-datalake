@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="arch-title arch-desc">
-  <title id="arch-title">Arquitectura ocp-datalake</title>
-  <desc id="arch-desc">Objetivo: Databricks publica el artefacto. Este PoC simula el registry con un PVC y model.json; OpenShift registra y sirve.</desc>
+  <title id="arch-title">ocp-datalake architecture</title>
+  <desc id="arch-desc">Target: Databricks publishes the artifact. This PoC simulates the registry with a PVC and model.json; OpenShift registers and serves.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#1b1d21"/>
@@ -12,21 +12,21 @@
     </marker>
   </defs>
   <rect width="1280" height="720" fill="url(#bg)"/>
-  <text x="40" y="42" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="22" font-weight="600">ocp-datalake - plano de despliegue</text>
+  <text x="40" y="42" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="22" font-weight="600">ocp-datalake - deployment plane</text>
   <text x="40" y="66" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="13">OpenShift 4.20 - OpenShift AI 3.5 - 1x g6.16xlarge (L4) - namespace ocp-datalake</text>
 
   <rect x="40" y="110" width="250" height="220" rx="12" fill="#212427" stroke="#3d3d3d"/>
-  <text x="58" y="140" fill="#ff3621" font-family="Segoe UI, sans-serif" font-size="14" font-weight="600">Fuera del cluster</text>
+  <text x="58" y="140" fill="#ff3621" font-family="Segoe UI, sans-serif" font-size="14" font-weight="600">Outside the cluster</text>
   <text x="58" y="168" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="18">Databricks</text>
-  <text x="58" y="190" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="13">objetivo: MLflow / UC</text>
+  <text x="58" y="190" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="13">target: MLflow / UC</text>
   <rect x="58" y="214" width="214" height="44" rx="6" fill="#2a2d31" stroke="#4d4d4d"/>
   <text x="70" y="241" fill="#f0ab00" font-family="Consolas, monospace" font-size="12">churn-score v1 JSON</text>
-  <text x="58" y="286" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">Hoy no hay cliente Databricks.</text>
-  <text x="58" y="304" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">Seed local: PVC + model.json.</text>
+  <text x="58" y="286" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">No Databricks client today.</text>
+  <text x="58" y="304" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">Local seed: PVC + model.json.</text>
 
   <rect x="340" y="96" width="620" height="488" rx="14" fill="#1f2124" stroke="#ee0000" stroke-opacity=".55"/>
   <text x="360" y="128" fill="#ee0000" font-family="Segoe UI, sans-serif" font-size="16" font-weight="600">Red Hat OpenShift</text>
-  <text x="360" y="148" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">identidad - cuota - red - serving - GPU</text>
+  <text x="360" y="148" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">identity - quota - network - serving - GPU</text>
 
   <rect x="360" y="172" width="180" height="86" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
   <text x="372" y="196" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">PVC gp3-csi</text>
@@ -34,14 +34,14 @@
   <text x="372" y="240" fill="#73c5c5" font-family="Consolas, monospace" font-size="10">models/churn-score/1</text>
 
   <rect x="560" y="172" width="180" height="86" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
-  <text x="572" y="196" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">Promocion (gemelos)</text>
+  <text x="572" y="196" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">Promotion (twins)</text>
   <text x="572" y="218" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="13">KFP  |  Tekton</text>
   <text x="572" y="240" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">seed - validate - register - rollout</text>
 
   <rect x="760" y="172" width="176" height="86" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
   <text x="772" y="196" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">DSPA (dev)</text>
   <text x="772" y="218" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="13">MinIO + MariaDB</text>
-  <text x="772" y="240" fill="#c58c00" font-family="Segoe UI, sans-serif" font-size="11">artefactos de run, no el modelo</text>
+  <text x="772" y="240" fill="#c58c00" font-family="Segoe UI, sans-serif" font-size="11">run artifacts, not the model</text>
 
   <rect x="360" y="282" width="280" height="86" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
   <text x="372" y="306" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">OpenShift AI - Model Registry</text>
@@ -51,27 +51,27 @@
   <rect x="660" y="282" width="276" height="86" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
   <text x="672" y="306" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">KServe - ServingRuntime UBI</text>
   <text x="672" y="328" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="13">InferenceService churn-score</text>
-  <text x="672" y="350" fill="#3e8635" font-family="Segoe UI, sans-serif" font-size="11">CPU - 1 replica - sin GPU</text>
+  <text x="672" y="350" fill="#3e8635" font-family="Segoe UI, sans-serif" font-size="11">CPU - 1 replica - no GPU</text>
 
   <rect x="360" y="392" width="280" height="86" rx="8" fill="#2a2d31" stroke="#f0ab00" stroke-opacity=".7"/>
-  <text x="372" y="416" fill="#f0ab00" font-family="Segoe UI, sans-serif" font-size="11">NVIDIA L4 - 24 GB (unica)</text>
+  <text x="372" y="416" fill="#f0ab00" font-family="Segoe UI, sans-serif" font-size="11">NVIDIA L4 - 24 GB (only one)</text>
   <text x="372" y="438" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="13">llama-32-3b-instruct</text>
-  <text x="372" y="460" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">ns my-first-model - no compartir GPU</text>
+  <text x="372" y="460" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">ns my-first-model - do not share GPU</text>
 
   <rect x="660" y="392" width="276" height="86" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
-  <text x="672" y="416" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">Identidad</text>
+  <text x="672" y="416" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">Identity</text>
   <text x="672" y="438" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="13">RHBK + oauth-proxy</text>
-  <text x="672" y="460" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">/predict y /healthz sin login (PoC)</text>
+  <text x="672" y="460" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">/predict and /healthz skip login (PoC)</text>
 
-  <text x="360" y="516" fill="#6a6e73" font-family="Segoe UI, sans-serif" font-size="12">GitOps (Argo CD) es el camino objetivo. Este sandbox usa oc apply + PipelineRun.</text>
-  <text x="360" y="536" fill="#6a6e73" font-family="Segoe UI, sans-serif" font-size="12">ODF/NooBaa no esta instalado: el registro de modelo es el PVC, no un bucket.</text>
-  <text x="360" y="556" fill="#6a6e73" font-family="Segoe UI, sans-serif" font-size="12">DSPA MinIO es solo historial de pipelines de desarrollo.</text>
+  <text x="360" y="516" fill="#6a6e73" font-family="Segoe UI, sans-serif" font-size="12">GitOps (Argo CD) is the target path. This sandbox uses oc apply + PipelineRun.</text>
+  <text x="360" y="536" fill="#6a6e73" font-family="Segoe UI, sans-serif" font-size="12">ODF/NooBaa is not installed: the model store is the PVC, not a bucket.</text>
+  <text x="360" y="556" fill="#6a6e73" font-family="Segoe UI, sans-serif" font-size="12">DSPA MinIO is development pipeline history only.</text>
 
   <rect x="1000" y="230" width="240" height="200" rx="12" fill="#212427" stroke="#3d3d3d"/>
-  <text x="1018" y="262" fill="#73c5c5" font-family="Segoe UI, sans-serif" font-size="14" font-weight="600">Consumidor</text>
+  <text x="1018" y="262" fill="#73c5c5" font-family="Segoe UI, sans-serif" font-size="14" font-weight="600">Consumer</text>
   <text x="1018" y="290" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="18">Route /predict</text>
-  <text x="1018" y="316" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="13">HTTP JSON. No habla con</text>
-  <text x="1018" y="334" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="13">Databricks ni con S3.</text>
+  <text x="1018" y="316" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="13">HTTP JSON. Does not talk to</text>
+  <text x="1018" y="334" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="13">Databricks or S3.</text>
   <rect x="1018" y="356" width="204" height="48" rx="6" fill="#2a2d31" stroke="#3e8635"/>
   <text x="1030" y="385" fill="#3e8635" font-family="Consolas, monospace" font-size="13">churn: true  |  0.5987</text>
 
@@ -83,5 +83,5 @@
     <path d="M936 325 H1000"/>
   </g>
   <text x="292" y="208" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">model.json</text>
-  <text x="40" y="680" fill="#6a6e73" font-family="Segoe UI, sans-serif" font-size="12">Capturado sobre el sandbox OpenTLC en vivo. Los hostnames de Route rotan al reconstruir el cluster.</text>
+  <text x="40" y="680" fill="#6a6e73" font-family="Segoe UI, sans-serif" font-size="12">Captured on the live OpenTLC sandbox. Route hostnames rotate when the cluster is rebuilt.</text>
 </svg>

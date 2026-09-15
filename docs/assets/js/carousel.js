@@ -23,7 +23,7 @@
     document.body.classList.toggle("journey-fs-open", on);
     if (fsBtn) {
       fsBtn.setAttribute("aria-pressed", on ? "true" : "false");
-      fsBtn.textContent = on ? "Salir" : "Fullscreen";
+      fsBtn.textContent = on ? "Exit" : "Fullscreen";
     }
     if (on) stop();
     else restart();
@@ -34,7 +34,7 @@
     b.type = "button";
     b.className = "journey-dot";
     b.setAttribute("role", "tab");
-    b.setAttribute("aria-label", "Ir al paso " + (i + 1));
+    b.setAttribute("aria-label", "Go to step " + (i + 1));
     b.addEventListener("click", function () {
       go(i, true);
     });

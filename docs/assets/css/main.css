@@ -172,6 +172,7 @@ body.journey-fs-open { overflow: hidden; }
 }
 .journey-slide img.is-diagram {
   object-fit: contain;
+  background: #fff;
 }
 .journey-slide figcaption {
   padding: 0.85rem 1.25rem 1rem;

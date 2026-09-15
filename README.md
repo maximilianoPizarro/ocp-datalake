@@ -23,6 +23,8 @@ Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token t
 | **Red Hat OpenShift AI** (Model Registry) | `ocp-datalake-registry` instance in `rhoai-model-registries` |
 | **Red Hat OpenShift GitOps** (Argo CD) | Target promotion path. This sandbox uses `oc apply` + PipelineRun. |
 | **Red Hat OpenShift AI** (KServe) | `ServingRuntime` + `InferenceService` for `churn-score` (CPU) |
+| **Red Hat OpenShift AI** (Models-as-a-Service) | Governed OpenAI-compatible gateway (`maas.<apps-domain>`), subscriptions, `sk-oai-` API keys |
+| **Red Hat Connectivity Link** (Kuadrant) | Auth (Authorino) and token rate limits (Limitador) on the MaaS Gateway |
 | **NVIDIA GPU Operator** + **Node Feature Discovery** | GPU discovery. The L4 stays with generative serving, not this linear model. |
 | **Red Hat OpenShift Serverless** | Available for KServe when using the single-model platform |
 | **Red Hat Build of Keycloak** | Cluster OpenID identity provider (OAuth federation) |
@@ -34,9 +36,9 @@ Outside Red Hat, the intended model source is **Databricks MLflow / Unity Catalo
 
 ## Architecture
 
-![Architecture: Databricks on the left; OpenShift in the center with ODF, Pipelines, GitOps, OpenShift AI/KServe, Serverless, and Service Mesh; Route on the right; Red Hat Build of Keycloak as IdP](docs/assets/diagrams/architecture.svg)
+![Architecture: Databricks on the left; OpenShift hub with OpenShift AI, Pipelines, GitOps, Keycloak, Connectivity Link, and KServe; predictive and Models-as-a-Service spokes](docs/assets/diagrams/architecture.png)
 
-Published diagrams are the SVGs under `docs/assets/diagrams/` (`architecture.svg`, `journey.svg`). Brand marks used to compose earlier versions are in `docs/assets/logos/`.
+Published diagrams are the PNGs under `docs/assets/diagrams/` (`architecture.png`, `journey.png`). Brand marks used to compose them are in `docs/assets/logos/`.
 
 OpenShift does not enter the Databricks workspace. In a real bridge it would receive a versioned artifact, materialize it under cluster policy, and serve it. This PoC does that for a **linear JSON stand-in**, not for a `model.pkl`. There is **one** L4: do not schedule this CPU model and a GPU workbench or vLLM endpoint on the GPU at the same time.
 
@@ -44,7 +46,7 @@ OpenShift does not enter the Databricks workspace. In a real bridge it would rec
 
 ## Journey
 
-![Journey: publish the model, store the artifact, pipeline and GitOps, serve with KServe on the L4, consume /predict](docs/assets/diagrams/journey.svg)
+![Two governed paths: predictive churn-score and Models-as-a-Service on one OpenShift cluster](docs/assets/diagrams/journey.png)
 
 Three roles, one artifact (`churn-score` v1), five steps. The consumer never talks to Databricks or S3: HTTP only.
 
@@ -94,7 +96,54 @@ KServe `InferenceService` `churn-score` uses a custom `ServingRuntime` (UBI Pyth
 
 oauth-proxy sits in front of the predictor Service (headless, so the upstream is port **8080**, not 80) and federates `/` to cluster OAuth (RHBK). `/healthz`, `/predict`, `/model`, `/v1`, and `/v2` skip auth so the PoC can be curled.
 
-### 5. Consume `/predict`
+### 5. Models-as-a-Service (LLMs)
+
+OpenShift AI 3.5 **Models-as-a-Service** is the governance layer in front of **LLM** serving (not the linear `churn-score` predictor). It is a different product surface from KServe `/predict`.
+
+This sandbox enables it on the RHOAI 3.5 path `spec.components.aigateway.modelsAsAService.managementState: Managed`, with OGX Managed for Gen AI Studio. **Llama Stack is set to Removed**: the operator refuses to enable OGX while `llamastackoperator` is Managed.
+
+What runs:
+
+| Piece | Where | Notes |
+| --- | --- | --- |
+| Gateway `maas-default-gateway` | `openshift-ingress` | Hostname `maas.<apps-domain>` (Gateway API, not KServe) |
+| Route `maas` | `openshift-ingress` | Passthrough to that Gateway Service so it appears under Networking → Routes |
+| `maas-api` | `redhat-ai-gateway-infra` | API keys, `/v1/models` |
+| PostgreSQL | `redhat-ods-applications` | Required for key lifecycle. Password is a Secret, not in git. |
+| CPU simulator `LLMInferenceService` | namespace `llm` | `llm-d-inference-sim --mode random`. **No GPU.** |
+| `MaaSModelRef` + `MaaSSubscription` + `MaaSAuthPolicy` | `llm` / `models-as-a-service` | Free + premium token windows for `system:authenticated` |
+
+`llama-32-3b-instruct` in `my-first-model` stays a KServe `InferenceService` on the L4. MaaS `MaaSModelRef` only attaches to `LLMInferenceService` (or `ExternalModel`). Wrapping the workshop Llama would mean converting it and competing for the only GPU; this PoC does not do that.
+
+Apply (cluster-admin). Secrets are created locally:
+
+```bash
+bash scripts/enable-maas.sh
+```
+
+Call the OpenAI-compatible API (body-based routing). Do not commit the `sk-oai-` key.
+
+```bash
+MAAS_URL=https://maas.$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}')
+TOKEN=$(oc whoami -t)
+API_KEY=$(curl -sk -X POST "$MAAS_URL/maas-api/v1/api-keys" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name":"poc","subscription":"simulator-free","expiresIn":"1h"}' \
+  | python -c "import json,sys; print(json.load(sys.stdin).get('key',''))")
+
+curl -sk "$MAAS_URL/maas-api/health"
+# Opening $MAAS_URL/ in a browser is 404 — there is no page at /. Use /maas-api/health or /v1/...
+curl -sk "$MAAS_URL/v1/models" -H "Authorization: Bearer $API_KEY"
+curl -sk "$MAAS_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/json" \
+  -d '{"model":"publishers/llm/models/facebook/opt-125m","messages":[{"role":"user","content":"Hello"}],"max_tokens":16}'
+```
+
+In the dashboard: **Gen AI studio → AI asset endpoints**. Published models show a **Model as a Service** badge. The simulator replies with random text; that is enough to prove gateway, keys, and quota.
+
+Manifests live under `manifests/maas/` and are **not** in the root `kustomization.yaml` (`namespace: ocp-datalake`). Official product docs: [Govern LLM access with Models-as-a-Service](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/govern_llm_access_with_models-as-a-service/index).
+
+### 6. Consume `/predict`
 
 ```bash
 ROUTE=https://$(oc get route inference -n ocp-datalake -o jsonpath='{.spec.host}')
@@ -210,8 +259,9 @@ apps/inference/server.py    inference HTTP contract (native + KServe v1)
 apps/model/model.json       hand-written linear artifact (not an MLflow directory)
 scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket (not on the live path)
 manifests/                  namespace, quota, DSPA, Model Registry RBAC, Tekton + KFP pipeline, KServe
+manifests/maas/             RHCL, Kuadrant, Gateway, Postgres, CPU simulator + MaaS CRs (not in root kustomization)
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
-scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py
+scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh
 docs/                       GitHub Pages site (journey + screenshots)
 docs/assets/diagrams/       architecture and journey SVGs
 docs/assets/screenshots/    live OpenShift and OpenShift AI captures

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-lws-operator
+  annotations:
+    openshift.io/display-name: Leader Worker Set Operator
+  labels:
+    openshift.io/cluster-monitoring: "true"
+    app.kubernetes.io/part-of: ocp-datalake-maas

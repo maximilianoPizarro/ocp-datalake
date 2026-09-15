@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="maas-title maas-desc">
+  <title id="maas-title">OpenShift AI Models-as-a-Service</title>
+  <desc id="maas-desc">Client calls the MaaS gateway with an sk-oai API key. Kuadrant and Authorino enforce subscription quota. The CPU simulator LLMInferenceService answers; llama keeps the GPU.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1d21"/>
+      <stop offset="1" stop-color="#0f1113"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#6a6e73"/>
+    </marker>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <text x="40" y="42" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="22" font-weight="600">Models-as-a-Service - OpenShift AI 3.5</text>
+  <text x="40" y="66" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="13">Governed OpenAI-compatible endpoint. Predictive churn-score stays on KServe /predict.</text>
+
+  <rect x="40" y="110" width="240" height="160" rx="12" fill="#212427" stroke="#3d3d3d"/>
+  <text x="58" y="140" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="12">Consumer</text>
+  <text x="58" y="168" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="18">App / curl</text>
+  <text x="58" y="196" fill="#c7c7c7" font-family="Consolas, monospace" font-size="12">sk-oai-...</text>
+  <text x="58" y="222" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">POST /v1/chat/completions</text>
+  <text x="58" y="242" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">GET /v1/models</text>
+
+  <line x1="280" y1="190" x2="360" y2="190" stroke="#6a6e73" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="360" y="96" width="560" height="500" rx="14" fill="#1f2124" stroke="#ee0000" stroke-opacity=".55"/>
+  <text x="380" y="128" fill="#ee0000" font-family="Segoe UI, sans-serif" font-size="16" font-weight="600">Red Hat OpenShift AI</text>
+  <text x="380" y="148" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">Connectivity Link - Kuadrant - Authorino - Limitador</text>
+
+  <rect x="380" y="172" width="250" height="90" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
+  <text x="392" y="198" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">Gateway API</text>
+  <text x="392" y="220" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="14">maas-default-gateway</text>
+  <text x="392" y="242" fill="#73c5c5" font-family="Consolas, monospace" font-size="11">maas.&lt;apps-domain&gt;</text>
+
+  <rect x="650" y="172" width="250" height="90" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
+  <text x="662" y="198" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">Governance CRs</text>
+  <text x="662" y="220" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="13">MaaSSubscription</text>
+  <text x="662" y="242" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="13">MaaSAuthPolicy</text>
+
+  <rect x="380" y="284" width="250" height="90" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
+  <text x="392" y="310" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">maas-api</text>
+  <text x="392" y="332" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="13">API keys + /v1/models</text>
+  <text x="392" y="354" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">PostgreSQL in redhat-ods-applications</text>
+
+  <rect x="650" y="284" width="250" height="90" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
+  <text x="662" y="310" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">MaaSModelRef</text>
+  <text x="662" y="332" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="13">facebook-opt-125m-simulated</text>
+  <text x="662" y="354" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="11">namespace llm</text>
+
+  <rect x="380" y="396" width="520" height="100" rx="8" fill="#2a2d31" stroke="#3d3d3d"/>
+  <text x="392" y="424" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="11">LLMInferenceService (CPU)</text>
+  <text x="392" y="448" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="15">llm-d-inference-sim --mode random</text>
+  <text x="392" y="472" fill="#f0ab00" font-family="Segoe UI, sans-serif" font-size="12">No GPU. The L4 stays on llama-32-3b-instruct (KServe, not MaaS).</text>
+
+  <rect x="380" y="516" width="520" height="58" rx="8" fill="#2a2d31" stroke="#4d4d4d"/>
+  <text x="392" y="552" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="13">churn-score remains a separate KServe InferenceService on /predict (CPU linear model).</text>
+
+  <rect x="960" y="172" width="280" height="200" rx="12" fill="#212427" stroke="#3d3d3d"/>
+  <text x="978" y="204" fill="#b8bbbe" font-family="Segoe UI, sans-serif" font-size="12">Identity</text>
+  <text x="978" y="232" fill="#f5f5f5" font-family="Segoe UI, sans-serif" font-size="16">RHBK + oc token</text>
+  <text x="978" y="260" fill="#c7c7c7" font-family="Segoe UI, sans-serif" font-size="13">mint key via maas-api</text>
+  <text x="978" y="292" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">Gen AI studio</text>
+  <text x="978" y="312" fill="#8a8d90" font-family="Segoe UI, sans-serif" font-size="12">AI asset endpoints</text>
+  <text x="978" y="340" fill="#73c5c5" font-family="Consolas, monospace" font-size="11">Model as a Service</text>
+</svg>

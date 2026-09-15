@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Journey | ocp-datalake</title>
-  <meta name="description" content="Demo interactiva: promocion en OpenShift AI. El registry de Databricks esta simulado con un PVC y model.json.">
+  <meta name="description" content="Interactive demo: OpenShift AI promotion. The Databricks registry is simulated with a PVC and model.json.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -18,53 +18,55 @@
     </a>
     <nav>
       <a href="./" aria-current="page">Journey</a>
-      <a class="hide-sm" href="https://github.com/maximilianoPizarro/ocp-datalake">Código</a>
+      <a class="hide-sm" href="https://github.com/maximilianoPizarro/ocp-datalake">Code</a>
     </nav>
   </header>
 
   <main>
     <h1>Databricks → OpenShift AI</h1>
     <p class="lede">
-      El flujo de gobierno está en el clúster: validar, registrar, servir.
-      El registry de Databricks está <strong>simulado</strong> (PVC + <code>model.json</code>, no un bundle MLflow).
-      Capturas del sandbox OpenTLC, 15 sep 2026.
+      Governance runs on the cluster: validate, register, serve.
+      The Databricks registry is <strong>simulated</strong> (PVC + <code>model.json</code>, not an MLflow bundle).
+      OpenShift AI <strong>Models-as-a-Service</strong> is the governed LLM gateway (CPU simulator; the L4 stays on Llama).
+      Captures from the OpenTLC sandbox, 15 Sep 2026.
     </p>
 
-    <nav class="chapters" aria-label="Capítulos">
-      <button type="button" data-slide="0" aria-current="true">Mapa</button>
+    <nav class="chapters" aria-label="Chapters">
+      <button type="button" data-slide="0" aria-current="true">Map</button>
       <button type="button" data-slide="2">OpenShift</button>
       <button type="button" data-slide="10">OpenShift AI</button>
       <button type="button" data-slide="16">/predict</button>
+      <button type="button" data-slide="17">MaaS</button>
       <a href="#compat">Compat</a>
     </nav>
 
-    <div id="journey-carousel" class="journey-carousel" tabindex="0" aria-roledescription="carrusel">
+    <div id="journey-carousel" class="journey-carousel" tabindex="0" aria-roledescription="carousel">
       <div class="journey-viewport">
 
         <figure class="journey-slide is-active">
-          <img class="is-diagram" src="assets/diagrams/architecture.svg" alt="Databricks a la izquierda, OpenShift en el centro, Route /predict a la derecha" width="1280" height="720">
+          <img class="is-diagram" src="assets/diagrams/architecture.png" alt="Databricks outside the cluster, OpenShift AI hub, predictive and Models-as-a-Service spokes" width="1600" height="900">
           <figcaption>
             <span class="slide-num">Step 01</span>
-            <strong>El plano</strong>
-            <span class="desc">OpenShift no entra al workspace. <strong>Hoy</strong> el artefacto es <code>model.json</code> (coeficientes), no un directorio MLflow. El PVC simula el registry.</span>
+            <strong>The plane</strong>
+            <span class="desc">OpenShift never enters the Databricks workspace. <strong>Today</strong> the artifact is <code>model.json</code> (coefficients), not an MLflow directory. The PVC stands in for the registry. MaaS is a second governed path on the same cluster.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img class="is-diagram" src="assets/diagrams/journey.svg" alt="Cinco pasos: publicar, almacenar, promover, servir, consumir" width="1280" height="280">
+          <img class="is-diagram" src="assets/diagrams/journey.png" alt="Predictive churn-score path and Models-as-a-Service LLM path on one OpenShift cluster" width="1600" height="900">
           <figcaption>
             <span class="slide-num">Step 02</span>
-            <strong>Cinco pasos</strong>
-            <span class="desc">Publicar en este PoC es el <strong>seed</strong> del JSON. No hay cliente Databricks. Si <code>validate</code> falla, no corren register ni rollout.</span>
+            <strong>Two paths</strong>
+            <span class="desc">Predictive: seed → validate → register → <code>/predict</code>. MaaS: Gen AI studio → LLMInferenceService → Connectivity Link → <code>/v1/chat/completions</code>. The L4 stays on Llama.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/01-openshift-project.png" alt="Overview del proyecto ocp-datalake Active" width="1448" height="954">
+          <img src="assets/screenshots/01-openshift-project.png" alt="ocp-datalake project overview Active" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 03</span>
-            <strong>Proyecto ocp-datalake</strong>
-            <span class="desc">Namespace Active en OpenShift 4.20. Diez Deployments, diez pods. Acá viven el predictor, DSPA y el PVC del modelo.</span>
+            <strong>Project ocp-datalake</strong>
+            <span class="desc">Namespace Active on OpenShift 4.20. Ten Deployments, ten pods. Predictor, DSPA, and the model PVC live here.</span>
           </figcaption>
         </figure>
 
@@ -72,26 +74,26 @@
           <img src="assets/screenshots/02-openshift-pvcs.png" alt="PVCs Bound: databricks-ml-registry, mariadb-dspa, minio-dspa" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 04</span>
-            <strong>El artefacto vive en un PVC</strong>
-            <span class="desc"><code>databricks-ml-registry</code> es el stand-in de ODF/S3. MinIO y MariaDB son solo historial de DSPA (dev).</span>
+            <strong>The artifact lives on a PVC</strong>
+            <span class="desc"><code>databricks-ml-registry</code> stands in for ODF/S3. MinIO and MariaDB are DSPA run history only (dev).</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/03-openshift-pipelineruns.png" alt="PipelineRun Tekton notebook-to-openshift Succeeded" width="1448" height="954">
+          <img src="assets/screenshots/03-openshift-pipelineruns.png" alt="Tekton PipelineRun notebook-to-openshift Succeeded" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 05</span>
-            <strong>Gemelo Tekton</strong>
-            <span class="desc"><code>notebook-to-openshift-zxjz9</code> Succeeded en 45 s. Misma promoción que KFP, disparada con <code>oc create -f manifests/08-pipelinerun.yaml</code>.</span>
+            <strong>Tekton twin</strong>
+            <span class="desc"><code>notebook-to-openshift-zxjz9</code> Succeeded in 45 s. Same promotion as KFP, started with <code>oc create -f manifests/08-pipelinerun.yaml</code>.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/04-openshift-pipelinerun-graph.png" alt="Grafo seed, pull, register, rollout" width="1448" height="954">
+          <img src="assets/screenshots/04-openshift-pipelinerun-graph.png" alt="Graph seed, pull, register, rollout" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 06</span>
             <strong>seed → pull → register → rollout</strong>
-            <span class="desc">La task <code>pull</code> valida keys de <em>nuestro</em> JSON (<code>weights</code>, <code>bias</code>, <code>threshold</code>), no la signature de un <code>MLmodel</code>.</span>
+            <span class="desc">The <code>pull</code> task validates keys on <em>our</em> JSON (<code>weights</code>, <code>bias</code>, <code>threshold</code>), not an <code>MLmodel</code> signature.</span>
           </figcaption>
         </figure>
 
@@ -100,139 +102,212 @@
           <figcaption>
             <span class="slide-num">Step 07</span>
             <strong>KServe Ready</strong>
-            <span class="desc"><code>InferenceService/churn-score</code> Ready True. Runtime UBI Python, una réplica, sin request de GPU.</span>
+            <span class="desc"><code>InferenceService/churn-score</code> Ready True. UBI Python runtime, one replica, no GPU request.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/06-openshift-routes.png" alt="Routes inference y Data Science Pipelines Accepted" width="1448" height="954">
+          <img src="assets/screenshots/06-openshift-routes.png" alt="Routes for inference and Data Science Pipelines Accepted" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 08</span>
-            <strong>Route inference</strong>
-            <span class="desc">oauth-proxy delante del predictor. <code>/predict</code> y <code>/healthz</code> sin login en este PoC. El hostname OpenTLC rota.</span>
+            <strong>inference Route</strong>
+            <span class="desc">oauth-proxy in front of the predictor. <code>/predict</code> and <code>/healthz</code> skip login in this PoC. OpenTLC hostnames rotate.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/07-openshift-llama-is.png" alt="llama-32-3b-instruct Ready en my-first-model" width="1448" height="954">
+          <img src="assets/screenshots/07-openshift-llama-is.png" alt="llama-32-3b-instruct Ready in my-first-model" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 09</span>
-            <strong>La L4 no es de churn-score</strong>
-            <span class="desc"><code>llama-32-3b-instruct</code> en <code>my-first-model</code> retiene la única GPU. El modelo lineal no la disputa.</span>
+            <strong>The L4 is not for churn-score</strong>
+            <span class="desc"><code>llama-32-3b-instruct</code> in <code>my-first-model</code> holds the only GPU. The linear model does not contend for it.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/08-openshift-node.png" alt="Nodo g6.16xlarge Ready control-plane y worker" width="1448" height="954">
+          <img src="assets/screenshots/08-openshift-node.png" alt="g6.16xlarge node Ready control-plane and worker" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 10</span>
-            <strong>Un nodo</strong>
-            <span class="desc">g6.16xlarge Ready: control-plane + worker, 64 cores. PoC de un solo nodo, no HA.</span>
+            <strong>One node</strong>
+            <span class="desc">g6.16xlarge Ready: control-plane + worker, 64 cores. Single-node PoC, not HA.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/09-rhoai-home.png" alt="Home de OpenShift AI con proyecto ocp-datalake" width="1448" height="954">
+          <img src="assets/screenshots/09-rhoai-home.png" alt="OpenShift AI home with ocp-datalake project" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 11</span>
             <strong>OpenShift AI 3.5</strong>
-            <span class="desc">Mismo proyecto, otra superficie. Admin federado por RHBK. Desde acá se dispara el pipeline KFP.</span>
+            <span class="desc">Same project, different surface. Admin federated by RHBK. This is where the KFP pipeline is started.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/10-rhoai-project.png" alt="Proyecto ocp-datalake con pipeline notebook-to-openshift y churn-score Ready" width="1448" height="954">
+          <img src="assets/screenshots/10-rhoai-project.png" alt="ocp-datalake project with notebook-to-openshift pipeline and churn-score Ready" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 12</span>
-            <strong>Pipeline + modelo en el mismo ns</strong>
-            <span class="desc"><code>notebook-to-openshift</code> (8 runs) y <code>churn-score</code> Ready. Single-model serving enabled.</span>
+            <strong>Pipeline + model in the same namespace</strong>
+            <span class="desc"><code>notebook-to-openshift</code> (8 runs) and <code>churn-score</code> Ready. Single-model serving enabled.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/11-rhoai-kfp-run.png" alt="Run KFP notebook-to-openshift-verify7 Complete" width="1448" height="954">
+          <img src="assets/screenshots/11-rhoai-kfp-run.png" alt="KFP run notebook-to-openshift-verify7 Complete" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 13</span>
-            <strong>Run KFP Complete</strong>
+            <strong>KFP run Complete</strong>
             <span class="desc"><code>verify7</code>: seed-model → validate-model → register-model → rollout-inference. SA <code>pipeline-runner-dspa</code>.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/12-rhoai-model-registry.png" alt="churn-score en ocp-datalake-registry" width="1448" height="954">
+          <img src="assets/screenshots/12-rhoai-model-registry.png" alt="churn-score in ocp-datalake-registry" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 14</span>
             <strong>Model Registry</strong>
-            <span class="desc">Instancia <code>ocp-datalake-registry</code> (HTTPS :8443). <code>churn-score</code> latest version 1.</span>
+            <span class="desc">Instance <code>ocp-datalake-registry</code> (HTTPS :8443). <code>churn-score</code> latest version 1.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/13-rhoai-churn-score-registry.png" alt="Detalle churn-score versión 1" width="1448" height="954">
+          <img src="assets/screenshots/13-rhoai-churn-score-registry.png" alt="churn-score version 1 details" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 15</span>
             <strong>churn-score v1</strong>
-            <span class="desc">«Linear churn-score artifact promoted from ocp-datalake». URI <code>pvc://databricks-ml-registry/models/churn-score/1</code>.</span>
+            <span class="desc">“Linear churn-score artifact promoted from ocp-datalake”. URI <code>pvc://databricks-ml-registry/models/churn-score/1</code>.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/14-rhoai-deployments.png" alt="Deployment churn-score sin hardware profile GPU" width="1448" height="954">
+          <img src="assets/screenshots/14-rhoai-deployments.png" alt="churn-score deployment with no GPU hardware profile" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 16</span>
             <strong>Deployments</strong>
-            <span class="desc">Runtime lineal, <em>No hardware profile</em>. La GPU no está en este predictor.</span>
+            <span class="desc">Linear runtime, <em>No hardware profile</em>. The GPU is not on this predictor.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img class="is-diagram" src="assets/screenshots/15-predict.png" alt="POST /predict responde churn true probability 0.5987" width="1448" height="954">
+          <img class="is-diagram" src="assets/screenshots/15-predict.png" alt="POST /predict returns churn true probability 0.5987" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 17</span>
-            <strong>Consumir /predict</strong>
-            <span class="desc">tenure 12 / charges 70 / tickets 3 → <code>churn: true</code> (0.5987). El consumidor nunca habla con Databricks.</span>
+            <strong>Call /predict</strong>
+            <span class="desc">tenure 12 / charges 70 / tickets 3 → <code>churn: true</code> (0.5987). The consumer never talks to Databricks.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/16-maas-ai-assets.png" alt="OpenShift AI AI asset endpoints listing Facebook OPT 125M Simulated Ready" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 18</span>
+            <strong>AI asset endpoints</strong>
+            <span class="desc">Gen AI studio → AI asset endpoints. <code>Facebook OPT 125M (Simulated)</code> is Ready as an AI asset (<code>opendatahub.io/genai-asset=true</code>). Use case LLM. The GPU is not on this model.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/17-maas-endpoints.png" alt="Endpoints dialog with Model as a Service badge and maas Route URL" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 19</span>
+            <strong>Model as a Service URL</strong>
+            <span class="desc">External API endpoint is the Route <code>https://maas.&lt;apps-domain&gt;/</code>. Badge <em>Model as a Service</em>. Pick a subscription, then mint an <code>sk-oai-</code> key. GET <code>/</code> is 404 by design; talk to <code>/v1/chat/completions</code>.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/18-maas-api-keys.png" alt="OpenShift AI API keys page with Simulator Free Tier keys" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 20</span>
+            <strong>API keys</strong>
+            <span class="desc">Dashboard: Gen AI studio → API keys. Keys bind to a MaaS subscription (here Simulator Free Tier). Short-lived keys expire; mint a new one for a demo call.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/19-maas-governance.png" alt="MaaS governance subscriptions Simulator Free and Premium Ready" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 21</span>
+            <strong>MaaS subscriptions</strong>
+            <span class="desc">Settings → MaaS governance. Free (100 tokens/min) and Premium (10000 tokens/min) are Ready. This is LLM access policy, not churn-score.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/20-maas-auth-policies.png" alt="MaaS authorization policy Simulator Access Ready" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 22</span>
+            <strong>Authorization policies</strong>
+            <span class="desc"><code>Simulator Access</code> Ready: authenticated users may call the simulator. Connectivity Link / Kuadrant enforces the policy on the gateway.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/21-maas-llmis.png" alt="LLMInferenceService facebook-opt-125m-simulated Ready in namespace llm" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 23</span>
+            <strong>LLMInferenceService</strong>
+            <span class="desc">OpenShift: <code>facebook-opt-125m-simulated</code> in <code>llm</code>, Ready True. Labels include <code>opendatahub.io/genai-asset=true</code> so it shows in the dashboard. CPU simulator; Llama keeps the L4.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/22-maas-route.png" alt="OpenShift Route maas in openshift-ingress Accepted passthrough" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 24</span>
+            <strong>Route maas</strong>
+            <span class="desc">Namespace <code>openshift-ingress</code>, service <code>maas-default-gateway-openshift-default</code>, TLS passthrough, Admitted. Host <code>maas.apps.&lt;cluster&gt;</code>.</span>
           </figcaption>
         </figure>
 
       </div>
       <div class="journey-controls">
         <div class="journey-nav">
-          <button type="button" class="journey-btn" id="journey-prev" aria-label="Paso anterior">← Prev</button>
-          <button type="button" class="journey-btn" id="journey-next" aria-label="Paso siguiente">Next →</button>
-          <button type="button" class="journey-btn" id="journey-fs" aria-label="Pantalla completa" aria-pressed="false">Fullscreen</button>
+          <button type="button" class="journey-btn" id="journey-prev" aria-label="Previous step">← Prev</button>
+          <button type="button" class="journey-btn" id="journey-next" aria-label="Next step">Next →</button>
+          <button type="button" class="journey-btn" id="journey-fs" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button>
         </div>
-        <div class="journey-dots" id="journey-dots" role="tablist" aria-label="Pasos"></div>
-        <span class="journey-status" id="journey-status" aria-live="polite">1 / 17</span>
+        <div class="journey-dots" id="journey-dots" role="tablist" aria-label="Steps"></div>
+        <span class="journey-status" id="journey-status" aria-live="polite">1 / 24</span>
       </div>
     </div>
-    <p class="hint">← → para avanzar · F pantalla completa · clic en la captura para ampliar</p>
+    <p class="hint">← → to move · F for fullscreen · click the capture to enlarge</p>
 
     <section class="commands" id="commands">
       <h2>Quick commands</h2>
-      <p>Resolvé el Route desde el clúster al que estás logueado. Los FQDN OpenTLC rotan.</p>
+      <p>Resolve the Route from the cluster you are logged into. OpenTLC FQDNs rotate.</p>
       <pre>ROUTE=https://$(oc get route inference -n ocp-datalake -o jsonpath='{.spec.host}')
 curl -sk -H 'Content-Type: application/json' \
   -d '{"tenure":12,"charges":70,"support_tickets":3}' \
-  "$ROUTE/predict"</pre>
+  "$ROUTE/predict"
+
+MAAS_URL=https://maas.$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}')
+TOKEN=$(oc whoami -t)
+API_KEY=$(curl -sk -X POST "$MAAS_URL/maas-api/v1/api-keys" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name":"poc","subscription":"simulator-free","expiresIn":"1h"}' \
+  | python -c "import json,sys; print(json.load(sys.stdin).get('key',''))")
+curl -sk "$MAAS_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/json" \
+  -d '{"model":"publishers/llm/models/facebook/opt-125m","messages":[{"role":"user","content":"Hello"}],"max_tokens":16}'</pre>
     </section>
 
     <section class="commands" id="compat">
-      <h2>Compatibilidad Databricks</h2>
-      <p><strong>Hoy: conceptual alta, técnica baja.</strong> El flujo (registry → promoción → serving bajo política de clúster) está bien modelado. El contrato del artefacto <em>no</em> es MLflow: es un JSON de coeficientes, no un directorio <code>MLmodel</code> + <code>model.pkl</code>. No apuntes un registry de producción a este PoC.</p>
+      <h2>Databricks compatibility</h2>
+      <p><strong>Today: high conceptual fit, low technical fit.</strong> The flow (registry → promotion → serving under cluster policy) is modeled well. The artifact contract is <em>not</em> MLflow: it is a coefficients JSON, not an <code>MLmodel</code> + <code>model.pkl</code> directory. Do not point a production registry at this PoC.</p>
       <table class="compat">
-        <thead><tr><th>Encaje</th><th>Qué entra</th></tr></thead>
+        <thead><tr><th>Fit</th><th>What lands</th></tr></thead>
         <tbody>
-          <tr><td>Alto</td><td>Lineal exportado a mano (<code>coef_</code> / <code>intercept_</code>) → este JSON. Es <code>churn-score</code> v1, no “traer el modelo del registry”.</td></tr>
-          <tr><td>Medio</td><td>sklearn / XGBoost / LightGBM: cambiar el ServingRuntime (MLServer + mlflow, o ONNX + OVMS/Triton). No parches <code>server.py</code>. Cuidado con pickle vs UBI 3.12.</td></tr>
-          <tr><td>Bajo</td><td>Spark ML, Feature Store / Unity Catalog en inferencia, rutas DBFS o volúmenes UC.</td></tr>
+          <tr><td>High</td><td>Linear model exported by hand (<code>coef_</code> / <code>intercept_</code>) into this JSON. That is <code>churn-score</code> v1, not “fetch the model from the registry”.</td></tr>
+          <tr><td>Medium</td><td>sklearn / XGBoost / LightGBM: change the ServingRuntime (MLServer + mlflow, or ONNX + OVMS/Triton). Do not patch <code>server.py</code>. Watch pickle vs UBI 3.12.</td></tr>
+          <tr><td>Low</td><td>Spark ML, Feature Store / Unity Catalog at inference, DBFS paths or UC volumes.</td></tr>
         </tbody>
       </table>
-      <p>Falta el puente real: Unity Catalog (<code>models:/catalog.schema.model/1</code>), OAuth M2M (no un PAT en un Secret) y egress. Detalle en el <a href="https://github.com/maximilianoPizarro/ocp-datalake#databricks-compatibility">README</a>.</p>
+      <p>The real bridge is still missing: Unity Catalog (<code>models:/catalog.schema.model/1</code>), OAuth M2M (not a PAT in a Secret), and egress. Detail in the <a href="https://github.com/maximilianoPizarro/ocp-datalake#databricks-compatibility">README</a>.</p>
     </section>
   </main>
 
   <footer>
-    Capturas reales · OpenShift 4.20 / OpenShift AI 3.5 ·
+    Live captures · OpenShift 4.20 / OpenShift AI 3.5 ·
     <a href="https://github.com/maximilianoPizarro/ocp-datalake">maximilianoPizarro/ocp-datalake</a>
   </footer>
   <script src="assets/js/carousel.js"></script>
