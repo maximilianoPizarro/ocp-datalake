@@ -1,0 +1,312 @@
+apiVersion: pipelines.kubeflow.org/v2beta1
+kind: Pipeline
+metadata:
+  name: notebook-to-openshift
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  displayName: notebook-to-openshift
+  description: Databricks-style registry publish, validate, register, and rollout.
+---
+apiVersion: pipelines.kubeflow.org/v2beta1
+kind: PipelineVersion
+metadata:
+  name: notebook-to-openshift-v1
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  pipelineName: notebook-to-openshift
+  displayName: notebook-to-openshift v1
+  description: Seed PVC, validate schema, register in Model Registry, rollout KServe.
+  pipelineSpec:
+    components:
+      comp-register-model:
+        executorLabel: exec-register-model
+        inputDefinitions:
+          parameters:
+            artifact_uri:
+              parameterType: STRING
+            mr_host:
+              parameterType: STRING
+      comp-rollout-inference:
+        executorLabel: exec-rollout-inference
+      comp-seed-model:
+        executorLabel: exec-seed-model
+        inputDefinitions:
+          parameters:
+            model_json:
+              parameterType: STRING
+            model_key:
+              parameterType: STRING
+      comp-validate-model:
+        executorLabel: exec-validate-model
+        inputDefinitions:
+          parameters:
+            model_key:
+              parameterType: STRING
+    deploymentSpec:
+      executors:
+        exec-register-model:
+          container:
+            args:
+            - --executor_input
+            - '{{$}}'
+            - --function_to_execute
+            - register_model
+            command:
+            - sh
+            - -c
+            - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get\
+              \ install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location\
+              \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n"
+            - sh
+            - -ec
+            - 'program_path=$(mktemp -d)
+
+
+              printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+              _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+              '
+            - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef register_model(mr_host:\
+              \ str, artifact_uri: str):\n    import json\n    import os\n    import ssl\n    import subprocess\n    import\
+              \ tempfile\n    import urllib.error\n    import urllib.parse\n    import urllib.request\n\n    model_name =\
+              \ os.environ.get(\"MODEL_NAME\", \"churn-score\")\n    model_version = os.environ.get(\"MODEL_VERSION\", \"\
+              1\")\n    model_format = os.environ.get(\"MODEL_FORMAT\", \"churn-score\")\n    model_format_version = os.environ.get(\"\
+              MODEL_FORMAT_VERSION\", \"1\")\n\n    ca_pem = subprocess.check_output(\n        [\n            \"oc\",\n  \
+              \          \"get\",\n            \"cm\",\n            \"openshift-service-ca.crt\",\n            \"-n\",\n \
+              \           \"ocp-datalake\",\n            \"-o\",\n            \"jsonpath={.data.service-ca\\\\.crt}\",\n \
+              \       ],\n        text=True,\n    )\n    token = open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
+              , encoding=\"utf-8\").read().strip()\n    ctx = ssl.create_default_context()\n    with tempfile.NamedTemporaryFile(\"\
+              w\", delete=False) as handle:\n        handle.write(ca_pem)\n        ca_path = handle.name\n    ctx.load_verify_locations(ca_path)\n\
+              \n    def api(path: str) -> str:\n        return f\"{mr_host.rstrip('/')}/api/model_registry/v1alpha3{path}\"\
+              \n\n    def request(method, path, body=None):\n        payload = json.dumps(body).encode(\"utf-8\") if body\
+              \ is not None else None\n        req = urllib.request.Request(\n            api(path),\n            data=payload,\n\
+              \            method=method,\n            headers={\n                \"Content-Type\": \"application/json\",\n\
+              \                \"Accept\": \"application/json\",\n                \"Authorization\": f\"Bearer {token}\",\n\
+              \            },\n        )\n        try:\n            with urllib.request.urlopen(req, timeout=30, context=ctx)\
+              \ as resp:\n                raw = resp.read().decode(\"utf-8\")\n                return json.loads(raw) if raw\
+              \ else {}\n        except urllib.error.HTTPError as exc:\n            if exc.code == 409:\n                return\
+              \ {}\n            raise\n\n    def find_registered_model(name):\n        query = urllib.parse.urlencode({\"\
+              name\": name})\n        data = request(\"GET\", f\"/registered_models?{query}\")\n        items = data.get(\"\
+              registeredModels\") or data.get(\"items\") or []\n        for item in items:\n            if item.get(\"name\"\
+              ) == name:\n                return item\n        return None\n\n    def find_model_version(registered_model_id,\
+              \ version):\n        data = request(\"GET\", f\"/registered_models/{registered_model_id}/versions\")\n     \
+              \   items = data.get(\"modelVersions\") or data.get(\"items\") or []\n        for item in items:\n         \
+              \   if item.get(\"name\") == version:\n                return item\n        return None\n\n    registered =\
+              \ find_registered_model(model_name)\n    if registered is None:\n        registered = request(\n           \
+              \ \"POST\",\n            \"/registered_models\",\n            {\n                \"name\": model_name,\n   \
+              \             \"description\": \"Linear churn-score artifact promoted from ocp-datalake\",\n            },\n\
+              \        )\n    registered_id = registered[\"id\"]\n    model_version_obj = find_model_version(registered_id,\
+              \ model_version)\n    if model_version_obj is None:\n        model_version_obj = request(\n            \"POST\"\
+              ,\n            \"/model_versions\",\n            {\n                \"name\": model_version,\n             \
+              \   \"registeredModelId\": registered_id,\n                \"description\": f\"{model_name} version {model_version}\"\
+              ,\n            },\n        )\n    version_id = model_version_obj[\"id\"]\n    request(\n        \"POST\",\n\
+              \        f\"/model_versions/{version_id}/artifacts\",\n        {\n            \"name\": f\"{model_name}-{model_version}\"\
+              ,\n            \"description\": f\"Artifact for {model_name} v{model_version}\",\n            \"uri\": artifact_uri,\n\
+              \            \"artifactType\": \"model-artifact\",\n            \"modelFormatName\": model_format,\n       \
+              \     \"modelFormatVersion\": model_format_version,\n            \"state\": \"UNKNOWN\",\n        },\n    )\n\
+              \    print(\n        json.dumps(\n            {\n                \"registeredModel\": model_name,\n        \
+              \        \"version\": model_version,\n                \"artifactUri\": artifact_uri,\n            }\n      \
+              \  ),\n        flush=True,\n    )\n\n"
+            image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+          imagePullPolicy: IfNotPresent
+        exec-rollout-inference:
+          container:
+            args:
+            - --executor_input
+            - '{{$}}'
+            - --function_to_execute
+            - rollout_inference
+            command:
+            - sh
+            - -c
+            - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get\
+              \ install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location\
+              \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n"
+            - sh
+            - -ec
+            - 'program_path=$(mktemp -d)
+
+
+              printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+              _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+              '
+            - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef rollout_inference():\n\
+              \    import subprocess\n\n    subprocess.run(\n        [\"oc\", \"rollout\", \"restart\", \"deployment/churn-score-predictor\"\
+              , \"-n\", \"ocp-datalake\"],\n        check=True,\n    )\n    subprocess.run(\n        [\n            \"oc\"\
+              ,\n            \"wait\",\n            \"--for=condition=Ready\",\n            \"inferenceservice/churn-score\"\
+              ,\n            \"-n\",\n            \"ocp-datalake\",\n            \"--timeout=180s\",\n        ],\n       \
+              \ check=True,\n    )\n    subprocess.run(\n        [\"oc\", \"rollout\", \"restart\", \"deployment/inference\"\
+              , \"-n\", \"ocp-datalake\"],\n        check=True,\n    )\n    subprocess.run(\n        [\n            \"oc\"\
+              ,\n            \"rollout\",\n            \"status\",\n            \"deployment/inference\",\n            \"\
+              -n\",\n            \"ocp-datalake\",\n            \"--timeout=180s\",\n        ],\n        check=True,\n   \
+              \ )\n\n"
+            image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+          imagePullPolicy: IfNotPresent
+        exec-seed-model:
+          container:
+            args:
+            - --executor_input
+            - '{{$}}'
+            - --function_to_execute
+            - seed_model
+            command:
+            - sh
+            - -c
+            - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get\
+              \ install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location\
+              \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n"
+            - sh
+            - -ec
+            - 'program_path=$(mktemp -d)
+
+
+              printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+              _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+              '
+            - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef seed_model(model_key:\
+              \ str, model_json: str):\n    import base64\n    import json\n    import subprocess\n    import textwrap\n \
+              \   import uuid\n\n    json.loads(model_json)\n    job_name = f\"registry-job-{uuid.uuid4().hex[:8]}\"\n   \
+              \ worker_script = textwrap.dedent(\n        f\"\"\"\n        import base64\n        import pathlib\n       \
+              \ payload = base64.b64decode(\"{base64.b64encode(model_json.encode('utf-8')).decode('ascii')}\").decode(\"utf-8\"\
+              )\n        dest = pathlib.Path(\"/registry\") / \"{model_key}\"\n        dest.parent.mkdir(parents=True, exist_ok=True)\n\
+              \        dest.write_text(payload, encoding=\"utf-8\")\n        print(f\"put file://{{dest}}\")\n        \"\"\
+              \"\n    ).strip()\n    worker_b64 = base64.b64encode(worker_script.encode(\"utf-8\")).decode(\"ascii\")\n  \
+              \  manifest = textwrap.dedent(\n        f\"\"\"\n        apiVersion: batch/v1\n        kind: Job\n        metadata:\n\
+              \          name: {job_name}\n          namespace: ocp-datalake\n        spec:\n          backoffLimit: 0\n \
+              \         template:\n            spec:\n              restartPolicy: Never\n              containers:\n    \
+              \            - name: worker\n                  image: image-registry.openshift-image-registry.svc:5000/openshift/python:3.12-ubi9\n\
+              \                  imagePullPolicy: IfNotPresent\n                  command: [\"python3\", \"-c\", \"import\
+              \ base64; exec(base64.b64decode('{worker_b64}'))\"]\n                  volumeMounts:\n                    -\
+              \ name: registry\n                      mountPath: /registry\n              volumes:\n                - name:\
+              \ registry\n                  persistentVolumeClaim:\n                    claimName: databricks-ml-registry\n\
+              \        \"\"\"\n    )\n    subprocess.run([\"oc\", \"apply\", \"-f\", \"-\"], input=manifest, text=True, check=True)\n\
+              \    try:\n        subprocess.run(\n            [\n                \"oc\",\n                \"wait\",\n    \
+              \            \"--for=condition=complete\",\n                f\"job/{job_name}\",\n                \"-n\",\n\
+              \                \"ocp-datalake\",\n                \"--timeout=180s\",\n            ],\n            check=True,\n\
+              \        )\n    finally:\n        subprocess.run(\n            [\"oc\", \"delete\", \"job\", job_name, \"-n\"\
+              , \"ocp-datalake\", \"--ignore-not-found\"],\n            check=False,\n        )\n\n"
+            image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+          imagePullPolicy: IfNotPresent
+        exec-validate-model:
+          container:
+            args:
+            - --executor_input
+            - '{{$}}'
+            - --function_to_execute
+            - validate_model
+            command:
+            - sh
+            - -c
+            - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get\
+              \ install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location\
+              \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n"
+            - sh
+            - -ec
+            - 'program_path=$(mktemp -d)
+
+
+              printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+              _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+              '
+            - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef validate_model(model_key:\
+              \ str):\n    import base64\n    import subprocess\n    import textwrap\n    import uuid\n\n    job_name = f\"\
+              registry-job-{uuid.uuid4().hex[:8]}\"\n    worker_script = textwrap.dedent(\n        f\"\"\"\n        import\
+              \ json\n        import pathlib\n        import sys\n        src = pathlib.Path(\"/registry\") / \"{model_key}\"\
+              \n        required = (\"name\", \"version\", \"weights\", \"bias\", \"threshold\")\n        model = json.loads(src.read_text(encoding=\"\
+              utf-8\"))\n        missing = [key for key in required if key not in model]\n        if missing:\n          \
+              \  sys.exit(\"invalid artifact, missing: \" + \", \".join(missing))\n        print(\n            \"valid model=\"\
+              \ + model[\"name\"] + \" version=\" + str(model[\"version\"])\n            + \" source=\" + str(model.get(\"\
+              source\")),\n            flush=True,\n        )\n        \"\"\"\n    ).strip()\n    worker_b64 = base64.b64encode(worker_script.encode(\"\
+              utf-8\")).decode(\"ascii\")\n    manifest = textwrap.dedent(\n        f\"\"\"\n        apiVersion: batch/v1\n\
+              \        kind: Job\n        metadata:\n          name: {job_name}\n          namespace: ocp-datalake\n     \
+              \   spec:\n          backoffLimit: 0\n          template:\n            spec:\n              restartPolicy: Never\n\
+              \              containers:\n                - name: worker\n                  image: image-registry.openshift-image-registry.svc:5000/openshift/python:3.12-ubi9\n\
+              \                  imagePullPolicy: IfNotPresent\n                  command: [\"python3\", \"-c\", \"import\
+              \ base64; exec(base64.b64decode('{worker_b64}'))\"]\n                  volumeMounts:\n                    -\
+              \ name: registry\n                      mountPath: /registry\n              volumes:\n                - name:\
+              \ registry\n                  persistentVolumeClaim:\n                    claimName: databricks-ml-registry\n\
+              \        \"\"\"\n    )\n    subprocess.run([\"oc\", \"apply\", \"-f\", \"-\"], input=manifest, text=True, check=True)\n\
+              \    try:\n        subprocess.run(\n            [\n                \"oc\",\n                \"wait\",\n    \
+              \            \"--for=condition=complete\",\n                f\"job/{job_name}\",\n                \"-n\",\n\
+              \                \"ocp-datalake\",\n                \"--timeout=180s\",\n            ],\n            check=True,\n\
+              \        )\n    finally:\n        subprocess.run(\n            [\"oc\", \"delete\", \"job\", job_name, \"-n\"\
+              , \"ocp-datalake\", \"--ignore-not-found\"],\n            check=False,\n        )\n\n"
+            image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+          imagePullPolicy: IfNotPresent
+    pipelineInfo:
+      description: Databricks-style registry publish, validate, register, and rollout.
+      name: notebook-to-openshift
+    root:
+      dag:
+        tasks:
+          register-model:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-register-model
+            dependentTasks:
+            - validate-model
+            inputs:
+              parameters:
+                artifact_uri:
+                  runtimeValue:
+                    constant: pvc://databricks-ml-registry/models/churn-score/1
+                mr_host:
+                  runtimeValue:
+                    constant: https://ocp-datalake-registry.rhoai-model-registries.svc:8443
+            taskInfo:
+              name: register-model
+          rollout-inference:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-rollout-inference
+            dependentTasks:
+            - register-model
+            taskInfo:
+              name: rollout-inference
+          seed-model:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-seed-model
+            inputs:
+              parameters:
+                model_json:
+                  runtimeValue:
+                    constant: "{\n  \"name\": \"churn-score\",\n  \"version\": \"1\",\n  \"framework\": \"linear\",\n  \"\
+                      source\": \"databricks-mlflow\",\n  \"registry\": \"databricks-ml-registry\",\n  \"weights\": {\n  \
+                      \  \"tenure\": -0.02,\n    \"charges\": 0.001,\n    \"support_tickets\": 0.15\n  },\n  \"bias\": 0.12,\n\
+                      \  \"threshold\": 0.5\n}\n"
+                model_key:
+                  runtimeValue:
+                    constant: models/churn-score/1/model.json
+            taskInfo:
+              name: seed-model
+          validate-model:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-validate-model
+            dependentTasks:
+            - seed-model
+            inputs:
+              parameters:
+                model_key:
+                  runtimeValue:
+                    constant: models/churn-score/1/model.json
+            taskInfo:
+              name: validate-model
+    schemaVersion: 2.1.0
+    sdkVersion: kfp-2.17.0

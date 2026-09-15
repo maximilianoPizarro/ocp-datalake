@@ -12,6 +12,9 @@ resources:
   - manifests/06-inference.yaml
   - manifests/07-pipeline.yaml
   - manifests/09-kserve.yaml
+  - manifests/10-dspa.yaml
+  - manifests/10b-dspa-minio-netpol.yaml
+  - manifests/12-kfp-pipeline.yaml
 configMapGenerator:
   - name: inference-src
     files:
@@ -22,6 +25,8 @@ configMapGenerator:
   - name: ml-assets
     files:
       - s3_model.py=scripts/s3_model.py
+      - register_model.py=scripts/register_model.py
+      - pvc_job.py=scripts/pvc_job.py
       - model.json=apps/model/model.json
 generatorOptions:
   disableNameSuffixHash: true

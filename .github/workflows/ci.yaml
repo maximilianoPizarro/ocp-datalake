@@ -15,3 +15,8 @@ jobs:
           python-version: "3.12"
       - name: Unit tests
         run: python -m unittest discover -s tests -v
+      - name: KFP compile check
+        run: |
+          pip install 'kfp>=2.16,<2.18' kfp-kubernetes pyyaml
+          python scripts/build_kfp_manifest.py
+          git diff --exit-code manifests/12-kfp-pipeline.yaml pipelines/notebook_to_openshift.yaml

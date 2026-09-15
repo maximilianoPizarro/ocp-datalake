@@ -103,6 +103,46 @@ spec:
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
+  name: register-model-registry
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  description: Publish churn-score v1 to the OpenShift AI Model Registry.
+  workspaces:
+    - name: assets
+  volumes:
+    - name: service-ca
+      configMap:
+        name: openshift-service-ca.crt
+  steps:
+    - name: register
+      image: image-registry.openshift-image-registry.svc:5000/openshift/python:3.12-ubi9
+      imagePullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 192Mi
+      volumeMounts:
+        - name: service-ca
+          mountPath: /etc/openshift-service-ca
+          readOnly: true
+      env:
+        - name: MR_HOST
+          value: https://ocp-datalake-registry.rhoai-model-registries.svc:8443
+        - name: ARTIFACT_URI
+          value: pvc://databricks-ml-registry/models/churn-score/1
+      script: |
+        #!/usr/bin/env python3
+        import runpy
+        runpy.run_path("$(workspaces.assets.path)/register_model.py", run_name="__main__")
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
   name: rollout-inference
   namespace: ocp-datalake
   labels:
@@ -160,7 +200,14 @@ spec:
           workspace: registry
         - name: scratch
           workspace: scratch
-    - name: rollout
+    - name: register
       runAfter: ["pull"]
+      taskRef:
+        name: register-model-registry
+      workspaces:
+        - name: assets
+          workspace: assets
+    - name: rollout
+      runAfter: ["register"]
       taskRef:
         name: rollout-inference

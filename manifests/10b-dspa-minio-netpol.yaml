@@ -1,0 +1,37 @@
+# DSP operator health checks run from redhat-ods-applications; bundled MinIO
+# needs the same ingress pattern as the operator-created mariadb-dspa policy.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minio-dspa
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    dsp-version: v2
+spec:
+  podSelector:
+    matchLabels:
+      app: minio-dspa
+      component: data-science-pipelines
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: redhat-ods-applications
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: data-science-pipelines-operator
+        - podSelector:
+            matchLabels:
+              app: ds-pipeline-dspa
+              component: data-science-pipelines
+        - podSelector:
+            matchLabels:
+              app: ds-pipeline-metadata-grpc-dspa
+              component: data-science-pipelines
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9000

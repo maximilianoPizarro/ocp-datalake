@@ -15,8 +15,8 @@ spec:
         cpu: 50m
         memory: 64Mi
       max:
-        cpu: "1"
-        memory: 1Gi
+        cpu: "2"
+        memory: 2Gi
     - type: PersistentVolumeClaim
       max:
         storage: 1Gi
@@ -30,10 +30,10 @@ metadata:
     app.kubernetes.io/part-of: ocp-datalake
 spec:
   hard:
-    pods: "12"
-    requests.cpu: "1"
-    requests.memory: 1Gi
-    limits.cpu: "4"
-    limits.memory: 4Gi
-    persistentvolumeclaims: "1"
-    requests.storage: 1Gi
+    pods: "24"
+    requests.cpu: "3"
+    requests.memory: 4Gi
+    limits.cpu: "10"
+    limits.memory: 12Gi
+    persistentvolumeclaims: "3"
+    requests.storage: 3Gi
