@@ -6,5 +6,7 @@ resources:
   - kuadrant.yaml
   - gatewayclass.yaml
   - gateway-resources.yaml
-# Authorino CR is applied after Kuadrant is Ready (scripts/enable-maas.sh).
-# Gateway is rendered from gateway.yaml.tmpl (cluster domain + default TLS secret).
+  - authorino.yaml
+  - gateway.yaml
+  - route.yaml
+

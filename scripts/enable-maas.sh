@@ -31,22 +31,25 @@ oc wait csv -n openshift-operators -l operators.coreos.com/rhcl-operator.openshi
 oc wait csv -n openshift-lws-operator -l operators.coreos.com/leader-worker-set.openshift-lws-operator= \
   --for=jsonpath='{.status.phase}'=Succeeded --timeout=600s
 
-echo "==> Kuadrant / Authorino / GatewayClass"
+echo "==> Kuadrant / Authorino / Gateway"
 oc apply -k "${MAAS_DIR}/platform"
 oc wait --for=condition=Ready kuadrant/kuadrant -n kuadrant-system --timeout=180s
-oc apply -f "${MAAS_DIR}/platform/authorino.yaml"
 oc -n kuadrant-system set env deployment/authorino \
   SSL_CERT_FILE=/etc/ssl/certs/openshift-service-ca/service-ca-bundle.crt \
   REQUESTS_CA_BUNDLE=/etc/ssl/certs/openshift-service-ca/service-ca-bundle.crt >/dev/null || true
 oc wait --for=condition=Available deployment/authorino -n kuadrant-system --timeout=300s
 
-echo "==> Gateway ${MAAS_HOSTNAME}"
-export CLUSTER_DOMAIN CERT_NAME MAAS_HOSTNAME
-envsubst '${CLUSTER_DOMAIN} ${CERT_NAME} ${MAAS_HOSTNAME}' \
-  < "${MAAS_DIR}/platform/gateway.yaml.tmpl" | oc apply -f -
+if oc get application ocp-datalake-maas-platform -n openshift-gitops >/dev/null 2>&1; then
+  echo "    Gateway hostname is owned by Argo CD (gitops/apps/maas-platform.yaml)."
+  echo "    Edit manifests/maas/platform/gateway.yaml and route.yaml in git for a new domain."
+else
+  echo "==> Gateway ${MAAS_HOSTNAME} (imperative render)"
+  export CLUSTER_DOMAIN CERT_NAME MAAS_HOSTNAME
+  envsubst '${CLUSTER_DOMAIN} ${CERT_NAME} ${MAAS_HOSTNAME}' \
+    < "${MAAS_DIR}/platform/gateway.yaml.tmpl" | oc apply -f -
+  envsubst '${MAAS_HOSTNAME}' < "${MAAS_DIR}/platform/route.yaml.tmpl" | oc apply -f -
+fi
 oc wait --for=condition=Programmed gateway/maas-default-gateway -n openshift-ingress --timeout=180s
-# Classic Route so Networking → Routes shows the hostname (Gateway API is not a Route).
-envsubst '${MAAS_HOSTNAME}' < "${MAAS_DIR}/platform/route.yaml.tmpl" | oc apply -f -
 
 echo "==> PostgreSQL (API keys). Secrets are cluster-local, not in git."
 if ! oc get secret postgres-creds -n redhat-ods-applications >/dev/null 2>&1; then

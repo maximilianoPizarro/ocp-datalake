@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ocp-datalake-root
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maximilianoPizarro/ocp-datalake.git
+    targetRevision: main
+    path: gitops/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-gitops
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

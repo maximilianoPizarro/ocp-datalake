@@ -21,7 +21,7 @@ Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token t
 | **Red Hat OpenShift Pipelines** (Tekton) | `oc create -f manifests/08-pipelinerun.yaml` promotion twin |
 | **Red Hat OpenShift AI** (Data Science Pipelines) | Dashboard path: KFP `notebook-to-openshift` (seed → validate → register → rollout) |
 | **Red Hat OpenShift AI** (Model Registry) | `ocp-datalake-registry` instance in `rhoai-model-registries` |
-| **Red Hat OpenShift GitOps** (Argo CD) | Target promotion path. This sandbox uses `oc apply` + PipelineRun. |
+| **Red Hat OpenShift GitOps** (Argo CD) | Install path: `bash scripts/enable-gitops.sh` (app-of-apps under `gitops/`). Tekton/KFP still run the model promotion. |
 | **Red Hat OpenShift AI** (KServe) | `ServingRuntime` + `InferenceService` for `churn-score` (CPU) |
 | **Red Hat OpenShift AI** (Models-as-a-Service) | Governed OpenAI-compatible gateway (`maas.<apps-domain>`), subscriptions, `sk-oai-` API keys |
 | **Red Hat Connectivity Link** (Kuadrant) | Auth (Authorino) and token rate limits (Limitador) on the MaaS Gateway |
@@ -115,11 +115,16 @@ What runs:
 
 `llama-32-3b-instruct` in `my-first-model` stays a KServe `InferenceService` on the L4. MaaS `MaaSModelRef` only attaches to `LLMInferenceService` (or `ExternalModel`). Wrapping the workshop Llama would mean converting it and competing for the only GPU; this PoC does not do that.
 
-Apply (cluster-admin). Secrets are created locally:
+Apply (cluster-admin). Preferred: GitOps. Imperative fallback still works. Secrets stay cluster-local:
 
 ```bash
+bash scripts/enable-gitops.sh
+# first-time MaaS flags + DB secrets if Argo has not created them yet:
 bash scripts/enable-maas.sh
 ```
+
+`oc apply -k manifests/maas/platform` is what Argo syncs. Edit `gateway.yaml` / `route.yaml` host and TLS secret when the ingress domain is not this OpenTLC sandbox (`*.apps.ocp.bt58s.sandbox2518.opentlc.com`, cert `cert-manager-ingress-cert`).
+
 
 Call the OpenAI-compatible API (body-based routing). Do not commit the `sk-oai-` key.
 
@@ -143,7 +148,31 @@ In the dashboard: **Gen AI studio → AI asset endpoints**. Published models sho
 
 Manifests live under `manifests/maas/` and are **not** in the root `kustomization.yaml` (`namespace: ocp-datalake`). Official product docs: [Govern LLM access with Models-as-a-Service](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/govern_llm_access_with_models-as-a-service/index).
 
-### 6. Consume `/predict`
+### 6. Install with OpenShift GitOps (Argo CD)
+
+The cluster copy is meant to match Git. `gitops/root-app.yaml` is the app of apps; children live in `gitops/apps/`.
+
+```bash
+bash scripts/enable-gitops.sh
+```
+
+That installs the OpenShift GitOps operator (channel `latest`) and syncs:
+
+| Argo application | Path | Wave |
+| --- | --- | --- |
+| `ocp-datalake` | repo root kustomize (`churn-score`) | 0 |
+| `ocp-datalake-registry` | `manifests/registry/` | 0 |
+| `ocp-datalake-maas-operators` | RHCL + Leader Worker Set | 0 |
+| `ocp-datalake-maas-cluster` | DSC MaaS flags + dashboard (server-side apply) | 1 |
+| `ocp-datalake-maas-platform` | Kuadrant, Gateway, Route `maas` | 2 |
+| `ocp-datalake-maas-postgres` | API-key DB (password via PreSync Job, not git) | 2 |
+| `ocp-datalake-maas-simulator` | CPU `LLMInferenceService` + MaaS CRs | 3 |
+
+`prune` is off. Do not point this at a cluster where you need Argo to delete unused objects. On a **new** install you still need OpenShift, OpenShift AI 3.5, and OpenShift Pipelines already present. Change the Gateway hostname in git before the first sync if the apps domain is not this sandbox.
+
+UI: Route `openshift-gitops-server` in `openshift-gitops` (OpenShift OAuth), or Administrator → GitOps.
+
+### 7. Consume `/predict`
 
 ```bash
 ROUTE=https://$(oc get route inference -n ocp-datalake -o jsonpath='{.spec.host}')
@@ -229,12 +258,11 @@ Unit tests (no cluster):
 python -m unittest discover -s tests -v
 ```
 
-Apply manifests, Model Registry, then promote:
+Apply manifests via GitOps (preferred) or `oc`, then promote:
 
 ```bash
-oc apply -k .
-oc apply -f manifests/11-model-registry.yaml
-oc apply -f manifests/11b-model-registry-rbac.yaml   # pipeline SA → registry REST
+bash scripts/enable-gitops.sh
+# or: oc apply -k . && oc apply -k manifests/registry
 
 # Tekton twin
 oc create -f manifests/08-pipelinerun.yaml
@@ -260,8 +288,10 @@ apps/model/model.json       hand-written linear artifact (not an MLflow director
 scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket (not on the live path)
 manifests/                  namespace, quota, DSPA, Model Registry RBAC, Tekton + KFP pipeline, KServe
 manifests/maas/             RHCL, Kuadrant, Gateway, Postgres, CPU simulator + MaaS CRs (not in root kustomization)
+manifests/registry/         Model Registry instance + pipeline RBAC (Argo app)
+gitops/                     OpenShift GitOps operator + Argo CD app-of-apps
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
-scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh
+scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh
 docs/                       GitHub Pages site (journey + screenshots)
 docs/assets/diagrams/       architecture and journey SVGs
 docs/assets/screenshots/    live OpenShift and OpenShift AI captures

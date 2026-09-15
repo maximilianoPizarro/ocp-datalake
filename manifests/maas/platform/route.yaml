@@ -1,0 +1,22 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: maas
+  namespace: openshift-ingress
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake-maas
+  annotations:
+    openshift.io/display-name: OpenShift AI Models-as-a-Service
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  host: maas.apps.ocp.bt58s.sandbox2518.opentlc.com
+  to:
+    kind: Service
+    name: maas-default-gateway-openshift-default
+    weight: 100
+  port:
+    targetPort: https
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

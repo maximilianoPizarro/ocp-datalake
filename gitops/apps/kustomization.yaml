@@ -1,0 +1,12 @@
+# Shared bits for every Application in this folder.
+# repoURL is this GitHub repo; change targetRevision to a tag for a pinned install.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ocp-datalake.yaml
+  - registry.yaml
+  - maas-operators.yaml
+  - maas-cluster.yaml
+  - maas-platform.yaml
+  - maas-postgres.yaml
+  - maas-simulator.yaml
