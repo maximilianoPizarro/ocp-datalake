@@ -6,6 +6,8 @@ The target cluster is a **single AWS g6.16xlarge node** (64 vCPU, 256 GiB, 1× N
 
 Namespace: `ocp-datalake`. Licensed under [Apache License 2.0](LICENSE).
 
+**Walkthrough (GitHub Pages):** [maximilianoPizarro.github.io/ocp-datalake](https://maximilianoPizarro.github.io/ocp-datalake/) — interactive demo (Prev / Next / Fullscreen) with live OpenShift and OpenShift AI screenshots. Deploys from `docs/` on push to `main` (Actions → Pages).
+
 Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token that was pasted into a chat or a ticket.
 
 ---
@@ -16,7 +18,9 @@ Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token t
 | --- | --- |
 | **Red Hat OpenShift** | Cluster, project, Route, SCC, OAuth, RBAC, NetworkPolicy, ResourceQuota |
 | **Red Hat OpenShift Data Foundation** (NooBaa) | Target S3 registry (`ObjectBucketClaim`). This sandbox uses a PVC instead. |
-| **Red Hat OpenShift Pipelines** (Tekton) | Job that pulls, validates, and publishes the model |
+| **Red Hat OpenShift Pipelines** (Tekton) | `oc create -f manifests/08-pipelinerun.yaml` promotion twin |
+| **Red Hat OpenShift AI** (Data Science Pipelines) | Dashboard path: KFP `notebook-to-openshift` (seed → validate → register → rollout) |
+| **Red Hat OpenShift AI** (Model Registry) | `ocp-datalake-registry` instance in `rhoai-model-registries` |
 | **Red Hat OpenShift GitOps** (Argo CD) | Target promotion path. This sandbox uses `oc apply` + PipelineRun. |
 | **Red Hat OpenShift AI** (KServe) | `ServingRuntime` + `InferenceService` for `churn-score` (CPU) |
 | **NVIDIA GPU Operator** + **Node Feature Discovery** | GPU discovery. The L4 stays with generative serving, not this linear model. |
@@ -30,9 +34,9 @@ Outside Red Hat, the model source is **Databricks MLflow Model Registry** (this 
 
 ## Architecture
 
-![Architecture: Databricks on the left; OpenShift in the center with ODF, Pipelines, GitOps, OpenShift AI/KServe, Serverless, and Service Mesh; Route on the right; Red Hat Build of Keycloak as IdP](docs/assets/diagrams/architecture.png)
+![Architecture: Databricks on the left; OpenShift in the center with ODF, Pipelines, GitOps, OpenShift AI/KServe, Serverless, and Service Mesh; Route on the right; Red Hat Build of Keycloak as IdP](docs/assets/diagrams/architecture.svg)
 
-Published diagrams are the PNGs under `docs/assets/diagrams/` (`architecture.png`, `journey.png`). There is no draw.io/Excalidraw source; brand marks used to compose them are in `docs/assets/logos/`.
+Published diagrams are the SVGs under `docs/assets/diagrams/` (`architecture.svg`, `journey.svg`). Brand marks used to compose earlier versions are in `docs/assets/logos/`.
 
 OpenShift does not enter the Databricks workspace. It receives a versioned artifact, materializes it under cluster policy, and serves it. There is **one** L4: do not schedule this CPU model and a GPU workbench or vLLM endpoint on the GPU at the same time.
 
@@ -40,7 +44,7 @@ OpenShift does not enter the Databricks workspace. It receives a versioned artif
 
 ## Journey
 
-![Journey: publish the model, store the artifact, pipeline and GitOps, serve with KServe on the L4, consume /predict](docs/assets/diagrams/journey.png)
+![Journey: publish the model, store the artifact, pipeline and GitOps, serve with KServe on the L4, consume /predict](docs/assets/diagrams/journey.svg)
 
 Three roles, one artifact (`churn-score` v1), five steps. The consumer never talks to Databricks or S3: HTTP only.
 
@@ -60,15 +64,29 @@ Object key: `models/churn-score/1/model.json`. On this OpenTLC sandbox the stand
 
 ### 3. Promote with Pipelines
 
-OpenShift Pipelines runs `notebook-to-openshift` as ServiceAccount `pipeline` (Role `databricks-puller`):
+Two equivalent paths share the same PVC key and `InferenceService`:
 
-1. **seed** — writes the JSON onto the registry volume.
-2. **pull / validate** — schema check, then ConfigMap `model-artifact`.
-3. **rollout** — restarts the KServe predictor and the oauth-proxy gateway (`runAfter: pull`).
+| Path | How to run | ServiceAccount |
+| --- | --- | --- |
+| **OpenShift AI** (dashboard) | Project `ocp-datalake` → Pipelines → `notebook-to-openshift` | `pipeline-runner-dspa` |
+| **Tekton** (`oc`) | `oc create -f manifests/08-pipelinerun.yaml` | `pipeline` |
 
-If validate fails, rollout does not run. The predictor loads `model.json` once at process start, so the live `InferenceService` keeps serving the last successful version. ConfigMap `model-artifact` is also left unchanged. Seed does overwrite the same PVC key (`models/churn-score/1/model.json`); that object is not re-read until a successful rollout.
+Both run **seed → validate → register → rollout**:
 
-To promote **v2**, write `models/churn-score/2/model.json`, set `ml-runtime` `MODEL_KEY` to that path, and point `InferenceService` `storageUri` at `pvc://databricks-ml-registry/models/churn-score/2`. A new key avoids clobbering the live v1 object. This PoC ships v1 only.
+1. **seed** — writes `model.json` onto PVC `databricks-ml-registry`.
+2. **validate** — requires `name`, `version`, `weights`, `bias`, `threshold`; aborts before register/rollout if invalid.
+3. **register** — publishes `churn-score` v1 to Model Registry `ocp-datalake-registry` (artifact URI `pvc://databricks-ml-registry/models/churn-score/1`).
+4. **rollout** — restarts the KServe predictor and the oauth-proxy gateway.
+
+If validate fails, register and rollout do not run. The predictor loads `model.json` once at process start, so the live `InferenceService` keeps serving the last successful version. Seed overwrites the same PVC key (`models/churn-score/1/model.json`); that object is not re-read until a successful rollout.
+
+**DSP storage honesty:** Data Science Pipelines uses an in-cluster **MinIO** stand-in (`manifests/10-dspa.yaml`) for pipeline artifacts and run history. That is development-only and separate from the model registry PVC. Production would use external S3-compatible storage.
+
+**Model Registry:** Instance manifest is `manifests/11-model-registry.yaml` (namespace `rhoai-model-registries`). Apply it separately from `oc apply -k .` because the main kustomization targets `ocp-datalake` only.
+
+**Tekton freeze branch:** `pipelines/openshift-pipelines` keeps the Tekton-only promotion (no DSP, no Model Registry register step) for rollback reference.
+
+To promote **v2**, write `models/churn-score/2/model.json`, set `ml-runtime` `MODEL_KEY` to that path, and point `InferenceService` `storageUri` at `pvc://databricks-ml-registry/models/churn-score/2`. This PoC ships v1 only.
 
 ### 4. Serve on OpenShift AI
 
@@ -119,12 +137,24 @@ Unit tests (no cluster):
 python -m unittest discover -s tests -v
 ```
 
-Apply manifests, then run seed → validate → rollout:
+Apply manifests, Model Registry, then promote:
 
 ```bash
 oc apply -k .
+oc apply -f manifests/11-model-registry.yaml
+oc apply -f manifests/11b-model-registry-rbac.yaml   # pipeline SA → registry REST
+
+# Tekton twin
 oc create -f manifests/08-pipelinerun.yaml
 oc get pipelinerun,inferenceservice -n ocp-datalake -w
+
+# OpenShift AI: open the RHOAI dashboard → project ocp-datalake → Pipelines → notebook-to-openshift
+```
+
+Recompile the KFP manifest after editing `pipelines/notebook_to_openshift.py`:
+
+```bash
+python scripts/build_kfp_manifest.py
 ```
 
 ---
@@ -136,10 +166,14 @@ LICENSE                     Apache License 2.0
 apps/inference/server.py    inference HTTP contract (native + KServe v1)
 apps/model/model.json       MLflow-style artifact
 scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket (not on the live path)
-manifests/                  namespace, quota, RBAC, PVC, network, runtime, gateway, pipeline, KServe
-docs/assets/diagrams/       published architecture and journey PNGs
-docs/assets/logos/          brand marks used to compose those PNGs
+manifests/                  namespace, quota, DSPA, Model Registry RBAC, Tekton + KFP pipeline, KServe
+pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
+scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py
+docs/                       GitHub Pages site (journey + screenshots)
+docs/assets/diagrams/       architecture and journey SVGs
+docs/assets/screenshots/    live OpenShift and OpenShift AI captures
+docs/assets/logos/          brand marks
 tests/                      stdlib unittest for the inference contract
-.github/workflows/ci.yaml   unit tests on push and pull request
+.github/workflows/          unit tests + GitHub Pages deploy
 kustomization.yaml
 ```
