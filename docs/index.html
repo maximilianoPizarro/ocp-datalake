@@ -37,6 +37,7 @@
       <button type="button" data-slide="10">OpenShift AI</button>
       <button type="button" data-slide="16">/predict</button>
       <button type="button" data-slide="17">MaaS</button>
+      <button type="button" data-slide="24">curl</button>
       <a href="#compat">Compat</a>
     </nav>
 
@@ -259,6 +260,24 @@
           </figcaption>
         </figure>
 
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/23-web-terminal-predict.png" alt="Web Terminal curl healthz predict and KServe v1 against churn-score" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 25</span>
+            <strong>Web Terminal · /predict</strong>
+            <span class="desc">OpenShift Web Terminal (operator channel <code>fast</code>) with <code>curl</code> against the inference Route. Native <code>/predict</code> and KServe v1 <code>instances[]</code> return the same churn probability.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/24-web-terminal-maas.png" alt="Web Terminal curl MaaS api-keys models and chat completions" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 26</span>
+            <strong>Web Terminal · MaaS</strong>
+            <span class="desc">Mint an <code>sk-oai-</code> key with your OpenShift token, list models, then call <code>/v1/chat/completions</code> on the simulator. Key prefix only in the capture — do not commit full keys.</span>
+          </figcaption>
+        </figure>
+
       </div>
       <div class="journey-controls">
         <div class="journey-nav">
@@ -267,7 +286,7 @@
           <button type="button" class="journey-btn" id="journey-fs" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button>
         </div>
         <div class="journey-dots" id="journey-dots" role="tablist" aria-label="Steps"></div>
-        <span class="journey-status" id="journey-status" aria-live="polite">1 / 24</span>
+        <span class="journey-status" id="journey-status" aria-live="polite">1 / 26</span>
       </div>
     </div>
     <p class="hint">← → to move · F for fullscreen · click the capture to enlarge</p>

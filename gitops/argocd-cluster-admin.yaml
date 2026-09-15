@@ -1,0 +1,16 @@
+# PoC: let the default Argo CD controller manage openshift-ingress, RHOAI, and Kuadrant namespaces.
+# Tighten this for production (AppProject + scoped Roles per namespace).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: openshift-gitops-argocd-application-controller-admin
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops

@@ -22,6 +22,7 @@ Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token t
 | **Red Hat OpenShift AI** (Data Science Pipelines) | Dashboard path: KFP `notebook-to-openshift` (seed → validate → register → rollout) |
 | **Red Hat OpenShift AI** (Model Registry) | `ocp-datalake-registry` instance in `rhoai-model-registries` |
 | **Red Hat OpenShift GitOps** (Argo CD) | Install path: `bash scripts/enable-gitops.sh` (app-of-apps under `gitops/`). Tekton/KFP still run the model promotion. |
+| **Red Hat OpenShift Web Terminal** | Optional: `oc apply -f manifests/web-terminal-subscription.yaml` — in-console `oc`/`curl` (console header terminal icon). |
 | **Red Hat OpenShift AI** (KServe) | `ServingRuntime` + `InferenceService` for `churn-score` (CPU) |
 | **Red Hat OpenShift AI** (Models-as-a-Service) | Governed OpenAI-compatible gateway (`maas.<apps-domain>`), subscriptions, `sk-oai-` API keys |
 | **Red Hat Connectivity Link** (Kuadrant) | Auth (Authorino) and token rate limits (Limitador) on the MaaS Gateway |

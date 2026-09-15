@@ -14,16 +14,20 @@ fi
 
 echo "==> OpenShift GitOps operator"
 oc apply -k "${ROOT}/gitops/operator"
-echo "    waiting for CSV..."
+echo "    waiting for openshift-gitops-operator CSV..."
 for _ in $(seq 1 60); do
-  PHASE="$(oc get csv -n openshift-gitops-operator -o jsonpath='{.items[0].status.phase}' 2>/dev/null || true)"
+  PHASE="$(oc get csv -n openshift-gitops-operator -l operators.coreos.com/openshift-gitops-operator.openshift-gitops-operator= \
+    -o jsonpath='{.items[0].status.phase}' 2>/dev/null || true)"
   if [ "${PHASE}" = "Succeeded" ]; then
     break
   fi
   sleep 10
 done
-oc get csv -n openshift-gitops-operator
+oc get csv -n openshift-gitops-operator -l operators.coreos.com/openshift-gitops-operator.openshift-gitops-operator=
 oc wait --for=condition=Available deployment/openshift-gitops-server -n openshift-gitops --timeout=600s
+
+echo "==> Argo CD controller RBAC (PoC cluster-admin)"
+oc apply -f "${ROOT}/gitops/argocd-cluster-admin.yaml"
 
 echo "==> App of apps (children are pulled from GitHub main)"
 oc apply -f "${ROOT}/gitops/root-app.yaml"

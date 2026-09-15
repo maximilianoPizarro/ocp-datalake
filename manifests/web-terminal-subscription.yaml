@@ -1,0 +1,15 @@
+# Optional: OpenShift Web Terminal for in-console curl/oc (channel fast).
+# Console header → terminal icon after CSV Succeeded.
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: web-terminal
+  namespace: openshift-operators
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  channel: fast
+  installPlanApproval: Automatic
+  name: web-terminal
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace

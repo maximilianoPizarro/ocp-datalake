@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>curl MaaS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@600;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 1448px; height: 954px; overflow: hidden; background: #151515; color: #f5f5f5; }
+    body { font-family: "Red Hat Text", sans-serif; padding: 28px 36px; }
+    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .title { font-family: "Red Hat Display", sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #73c5c5; }
+    .badge { font-size: 12px; color: #8a8d90; border: 1px solid #3d3d3d; border-radius: 999px; padding: 6px 12px; }
+    .term {
+      background: #212427;
+      border: 1px solid #3d3d3d;
+      border-radius: 12px;
+      padding: 22px 24px;
+      font-family: "Red Hat Mono", monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      height: 820px;
+      overflow: hidden;
+    }
+    .prompt { color: #73c5c5; }
+    .cmd { color: #f5f5f5; white-space: pre-wrap; word-break: break-word; }
+    .out { color: #c7c7c7; margin-top: 8px; white-space: pre-wrap; }
+    .label { color: #ee0000; font-family: "Red Hat Display", sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; margin: 16px 0 6px; }
+    .note { color: #8a8d90; font-size: 12px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="title">Web Terminal · MaaS OpenAI API</div>
+    <div class="badge">Models-as-a-Service · simulator-free</div>
+  </div>
+  <div class="term">
+    <div><span class="prompt">~ $</span> <span class="cmd">MAAS_URL=https://maas.apps.ocp.bt58s.sandbox2518.opentlc.com
+TOKEN=$(oc whoami -t)</span></div>
+    <div class="label">MINT API KEY (OpenShift OAuth token)</div>
+    <div><span class="prompt">~ $</span> <span class="cmd">API_KEY=$(curl -sk -X POST "$MAAS_URL/maas-api/v1/api-keys" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name":"poc-curl","subscription":"simulator-free","expiresIn":"1h"}' \
+  | python -c "import json,sys; print(json.load(sys.stdin)['key'])")</span></div>
+    <div class="out">sk-oai-BZT6F7AYnApK...  <span class="note"># full key omitted in capture</span></div>
+    <div class="label">LIST MODELS</div>
+    <div><span class="prompt">~ $</span> <span class="cmd">curl -sk "$MAAS_URL/v1/models" -H "Authorization: Bearer $API_KEY"</span></div>
+    <div class="out">{"data":[{"id":"publishers/llm/models/facebook/opt-125m","object":"model","ready":true,"modelDetails":{"displayName":"Facebook OPT 125M (Simulated)"},"subscriptions":[{"name":"simulator-free","displayName":"Simulator Free Tier"}]}],"object":"list"}</div>
+    <div class="label">CHAT COMPLETIONS</div>
+    <div><span class="prompt">~ $</span> <span class="cmd">curl -sk "$MAAS_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/json" \
+  -d '{"model":"publishers/llm/models/facebook/opt-125m","messages":[{"role":"user","content":"Hello from curl"}],"max_tokens":16}'</span></div>
+    <div class="out">{"id":"chatcmpl-756fa161-2587-551d-9ace-4a74c85acbe7","object":"chat.completion","model":"facebook/opt-125m","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"I am your AI assistant, how can "}}],"usage":{"prompt_tokens":3,"completion_tokens":8,"total_tokens":11}}</div>
+  </div>
+</body>
+</html>
