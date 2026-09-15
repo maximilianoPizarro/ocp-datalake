@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Put/get/validate a model artifact on ODF NooBaa (S3-compatible)."""
+"""AWS SigV4 put/get/validate against an S3-compatible bucket (ODF NooBaa).
+
+This module is not used by the current Tekton pipeline. The OpenTLC sandbox
+has no OpenShift Data Foundation, so the Databricks registry stand-in is PVC
+``databricks-ml-registry`` and ``apps/model/model.json``. Keep this helper for
+when an ``ObjectBucketClaim`` is available; do not delete it as dead code.
+"""
 from __future__ import annotations
 
 import datetime

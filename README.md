@@ -4,7 +4,7 @@ Proof of concept: **train and version a model in Databricks, serve it on OpenShi
 
 The target cluster is a **single AWS g6.16xlarge node** (64 vCPU, 256 GiB, 1× NVIDIA L4 24 GB). Databricks remains the SaaS model registry. OpenShift is the deployment, identity, and GPU plane.
 
-Namespace: `ocp-datalake`.
+Namespace: `ocp-datalake`. Licensed under [Apache License 2.0](LICENSE).
 
 Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token that was pasted into a chat or a ticket.
 
@@ -31,6 +31,8 @@ Outside Red Hat, the model source is **Databricks MLflow Model Registry** (this 
 ## Architecture
 
 ![Architecture: Databricks on the left; OpenShift in the center with ODF, Pipelines, GitOps, OpenShift AI/KServe, Serverless, and Service Mesh; Route on the right; Red Hat Build of Keycloak as IdP](docs/assets/diagrams/architecture.png)
+
+Published diagrams are the PNGs under `docs/assets/diagrams/` (`architecture.png`, `journey.png`). There is no draw.io/Excalidraw source; brand marks used to compose them are in `docs/assets/logos/`.
 
 OpenShift does not enter the Databricks workspace. It receives a versioned artifact, materializes it under cluster policy, and serves it. There is **one** L4: do not schedule this CPU model and a GPU workbench or vLLM endpoint on the GPU at the same time.
 
@@ -62,19 +64,25 @@ OpenShift Pipelines runs `notebook-to-openshift` as ServiceAccount `pipeline` (R
 
 1. **seed** — writes the JSON onto the registry volume.
 2. **pull / validate** — schema check, then ConfigMap `model-artifact`.
-3. **rollout** — restarts the KServe predictor and the oauth-proxy gateway.
+3. **rollout** — restarts the KServe predictor and the oauth-proxy gateway (`runAfter: pull`).
+
+If validate fails, rollout does not run. The predictor loads `model.json` once at process start, so the live `InferenceService` keeps serving the last successful version. ConfigMap `model-artifact` is also left unchanged. Seed does overwrite the same PVC key (`models/churn-score/1/model.json`); that object is not re-read until a successful rollout.
+
+To promote **v2**, write `models/churn-score/2/model.json`, set `ml-runtime` `MODEL_KEY` to that path, and point `InferenceService` `storageUri` at `pvc://databricks-ml-registry/models/churn-score/2`. A new key avoids clobbering the live v1 object. This PoC ships v1 only.
 
 ### 4. Serve on OpenShift AI
 
-KServe `InferenceService` `churn-score` uses a custom `ServingRuntime` (UBI Python). **No GPU request** — the NVIDIA L4 remains available for generative models such as the workshop `llama-32-3b-instruct`.
+KServe `InferenceService` `churn-score` uses a custom `ServingRuntime` (UBI Python), **one replica** (`minReplicas` / `maxReplicas`: 1). That is a PoC on a single node, not HA. **No GPU request** — the NVIDIA L4 remains available for generative models such as the workshop `llama-32-3b-instruct`.
 
 oauth-proxy sits in front of the predictor Service (headless, so the upstream is port **8080**, not 80) and federates `/` to cluster OAuth (RHBK). `/healthz`, `/predict`, `/model`, `/v1`, and `/v2` skip auth so the PoC can be curled.
 
 ### 5. Consume `/predict`
 
 ```bash
-ROUTE=https://inference-ocp-datalake.apps.ocp.bt58s.sandbox2518.opentlc.com
+ROUTE=https://$(oc get route inference -n ocp-datalake -o jsonpath='{.spec.host}')
 ```
+
+OpenTLC / RHDP sandbox hostnames rotate. Do not treat a hostname from search results or an older cluster (`*.dyn.redhatworkshops.io` or a previous `*.opentlc.com`) as the live endpoint.
 
 ---
 
@@ -86,10 +94,10 @@ Cluster OAuth uses RHBK (realm `sso`, client `idp-4-ocp`). The gateway ServiceAc
 
 ## Try the current PoC
 
-This OpenTLC sandbox (`ocp.bt58s`) has OpenShift AI, GPU Operator, Pipelines, and RHBK. Registry storage is the PVC above. The L4 is not attached to `churn-score`.
+This OpenTLC sandbox has OpenShift AI, GPU Operator, Pipelines, and RHBK. Registry storage is the PVC above. The L4 is not attached to `churn-score`. Resolve the Route from the cluster you are logged into; the hostname changes when the sandbox is rebuilt.
 
 ```bash
-ROUTE=https://inference-ocp-datalake.apps.ocp.bt58s.sandbox2518.opentlc.com
+ROUTE=https://$(oc get route inference -n ocp-datalake -o jsonpath='{.spec.host}')
 
 curl -sk "$ROUTE/healthz"
 curl -sk "$ROUTE/model"
@@ -124,10 +132,13 @@ oc get pipelinerun,inferenceservice -n ocp-datalake -w
 ## Repository layout
 
 ```
+LICENSE                     Apache License 2.0
 apps/inference/server.py    inference HTTP contract (native + KServe v1)
 apps/model/model.json       MLflow-style artifact
-scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket
+scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket (not on the live path)
 manifests/                  namespace, quota, RBAC, PVC, network, runtime, gateway, pipeline, KServe
+docs/assets/diagrams/       published architecture and journey PNGs
+docs/assets/logos/          brand marks used to compose those PNGs
 tests/                      stdlib unittest for the inference contract
 .github/workflows/ci.yaml   unit tests on push and pull request
 kustomization.yaml
