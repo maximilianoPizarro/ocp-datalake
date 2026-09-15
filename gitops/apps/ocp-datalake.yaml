@@ -23,3 +23,17 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: tekton.dev
+      kind: Task
+      jsonPointers:
+        - /status
+    - group: serving.kserve.io
+      kind: InferenceService
+      jsonPointers:
+        - /status
+    - group: datasciencepipelinesapplications.opendatahub.io
+      kind: DataSciencePipelinesApplication
+      jsonPointers:
+        - /status

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>oc get application</title>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@600;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 1448px; height: 954px; overflow: hidden; background: #151515; color: #f5f5f5; }
+    body { font-family: "Red Hat Text", sans-serif; padding: 28px 36px; }
+    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .title { font-family: "Red Hat Display", sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #73c5c5; }
+    .badge { font-size: 12px; color: #8a8d90; border: 1px solid #3d3d3d; border-radius: 999px; padding: 6px 12px; }
+    .term {
+      background: #212427;
+      border: 1px solid #3d3d3d;
+      border-radius: 12px;
+      padding: 22px 24px;
+      font-family: "Red Hat Mono", monospace;
+      font-size: 15px;
+      line-height: 1.55;
+      height: 820px;
+      overflow: hidden;
+    }
+    .prompt { color: #73c5c5; }
+    .cmd { color: #f5f5f5; white-space: pre-wrap; }
+    .out { color: #c7c7c7; margin-top: 10px; white-space: pre; }
+    .label { color: #ee0000; font-family: "Red Hat Display", sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; margin: 22px 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="title">Web Terminal · OpenShift GitOps</div>
+    <div class="badge">oc · namespace openshift-gitops</div>
+  </div>
+  <div class="term">
+    <div class="label">INSTALL</div>
+    <div><span class="prompt">~ $</span> <span class="cmd">bash scripts/enable-gitops.sh</span></div>
+    <div class="out">==> OpenShift GitOps operator
+openshift-gitops-operator.v1.21.4   Succeeded
+==> App of apps (children are pulled from GitHub main)
+application.argoproj.io/ocp-datalake-root created
+Argo CD: https://openshift-gitops-server-openshift-gitops.apps.ocp.bt58s.sandbox2518.opentlc.com</div>
+    <div class="label">APPLICATIONS</div>
+    <div><span class="prompt">~ $</span> <span class="cmd">oc get application -n openshift-gitops</span></div>
+    <div class="out">NAME                          SYNC STATUS   HEALTH STATUS
+ocp-datalake                  Synced        Healthy
+ocp-datalake-maas-cluster     Synced        Healthy
+ocp-datalake-maas-operators   Synced        Healthy
+ocp-datalake-maas-platform    Synced        Healthy
+ocp-datalake-maas-postgres    Synced        Healthy
+ocp-datalake-maas-simulator   Synced        Healthy
+ocp-datalake-registry         Synced        Healthy
+ocp-datalake-root             Synced        Healthy</div>
+  </div>
+</body>
+</html>

@@ -28,7 +28,7 @@
       Governance runs on the cluster: validate, register, serve.
       The Databricks registry is <strong>simulated</strong> (PVC + <code>model.json</code>, not an MLflow bundle).
       OpenShift AI <strong>Models-as-a-Service</strong> is the governed LLM gateway (CPU simulator; the L4 stays on Llama).
-      Captures from the OpenTLC sandbox, 15 Sep 2026.
+      Desired state is <strong>OpenShift GitOps</strong> (Argo CD). Captures from the OpenTLC sandbox, 15 Sep 2026.
     </p>
 
     <nav class="chapters" aria-label="Chapters">
@@ -38,6 +38,7 @@
       <button type="button" data-slide="16">/predict</button>
       <button type="button" data-slide="17">MaaS</button>
       <button type="button" data-slide="24">curl</button>
+      <button type="button" data-slide="26">GitOps</button>
       <a href="#compat">Compat</a>
     </nav>
 
@@ -278,6 +279,24 @@
           </figcaption>
         </figure>
 
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/25-gitops-apps.png" alt="OpenShift GitOps Applications all Synced and Healthy" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 27</span>
+            <strong>OpenShift GitOps</strong>
+            <span class="desc">App of apps under <code>gitops/</code>. Eight Applications: churn-score, Model Registry, and the MaaS layers. <code>prune</code> is off. Install: <code>bash scripts/enable-gitops.sh</code>.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/26-gitops-oc.png" alt="oc get application shows eight GitOps apps Synced Healthy" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 28</span>
+            <strong>oc get application</strong>
+            <span class="desc">Same list from the CLI. Tekton and KFP still promote the model; Argo keeps the cluster copy matching <code>main</code>.</span>
+          </figcaption>
+        </figure>
+
       </div>
       <div class="journey-controls">
         <div class="journey-nav">
@@ -286,7 +305,7 @@
           <button type="button" class="journey-btn" id="journey-fs" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button>
         </div>
         <div class="journey-dots" id="journey-dots" role="tablist" aria-label="Steps"></div>
-        <span class="journey-status" id="journey-status" aria-live="polite">1 / 26</span>
+        <span class="journey-status" id="journey-status" aria-live="polite">1 / 28</span>
       </div>
     </div>
     <p class="hint">← → to move · F for fullscreen · click the capture to enlarge</p>

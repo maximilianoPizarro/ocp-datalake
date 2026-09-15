@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ocp-datalake architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 1600px; height: 900px; overflow: hidden; background: #fff; }
+    body {
+      font-family: "Red Hat Text", sans-serif;
+      color: #151515;
+      padding: 28px 40px 24px;
+      position: relative;
+    }
+    svg.arrows { position: absolute; inset: 0; width: 1600px; height: 900px; pointer-events: none; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      flex: 1;
+      text-align: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      width: 160px;
+      justify-content: flex-end;
+    }
+    .brand img { height: 28px; }
+    .mid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 36px;
+      align-items: center;
+    }
+    .outside {
+      border: 1.5px solid #b8bbbe;
+      border-radius: 14px;
+      padding: 20px 14px;
+      text-align: center;
+      background: #fff;
+    }
+    .outside .lbl {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .outside img { height: 52px; }
+    .outside .name { font-family: "Red Hat Display", sans-serif; font-weight: 700; font-size: 16px; margin-top: 8px; }
+    .outside .role { font-size: 12px; color: #6a6e73; margin-top: 4px; line-height: 1.35; }
+    .hub {
+      border: 2px solid #8ec8f6;
+      background: #f2f9ff;
+      border-radius: 18px;
+      padding: 16px 18px 18px;
+    }
+    .hub h2 {
+      font-family: "Red Hat Display", sans-serif;
+      text-align: center;
+      color: #0066cc;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .tile {
+      background: #fff;
+      border: 1.5px solid #d2d2d2;
+      border-radius: 12px;
+      padding: 12px 8px 10px;
+      text-align: center;
+      min-height: 118px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .tile img { height: 38px; max-width: 150px; object-fit: contain; }
+    .tile .name {
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+    .tile .role { font-size: 11px; color: #6a6e73; line-height: 1.25; }
+    .spokes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      margin: 20px 0 0 276px;
+    }
+    .spoke {
+      border: 2px solid #7cc674;
+      background: #f3faf2;
+      border-radius: 16px;
+      padding: 12px 14px 14px;
+    }
+    .spoke h3 {
+      font-family: "Red Hat Display", sans-serif;
+      color: #3e8635;
+      text-align: center;
+      font-size: 17px;
+      margin-bottom: 8px;
+    }
+    .pill {
+      background: #fff;
+      border: 1.5px solid #d2d2d2;
+      border-radius: 10px;
+      padding: 7px 10px;
+      text-align: center;
+      font-size: 13px;
+      margin-bottom: 7px;
+    }
+    .legend {
+      position: absolute;
+      left: 40px;
+      bottom: 24px;
+      border: 1.5px solid #b8bbbe;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      background: #fff;
+    }
+    .legend div { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+    .sw { width: 28px; border-top: 3px solid #151515; display: inline-block; }
+    .sw.red { border-color: #c9190b; }
+    .sw.blue { border-color: #0066cc; border-top-style: dashed; }
+  </style>
+</head>
+<body>
+  <svg class="arrows" viewBox="0 0 1600 900" aria-hidden="true">
+    <defs>
+      <marker id="ahk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" fill="#151515"/>
+      </marker>
+      <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" fill="#c9190b"/>
+      </marker>
+      <marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" fill="#0066cc"/>
+      </marker>
+    </defs>
+    <line x1="280" y1="250" x2="316" y2="250" stroke="#151515" stroke-width="2.4" marker-end="url(#ahk)"/>
+    <path d="M820 392 C820 414 700 414 700 432" fill="none" stroke="#0066cc" stroke-width="2.4" stroke-dasharray="7 5" marker-end="url(#ahb)"/>
+    <path d="M1080 392 C1080 414 1200 414 1200 432" fill="none" stroke="#c9190b" stroke-width="2.4" marker-end="url(#ahr)"/>
+  </svg>
+  <header>
+    <span style="width:160px"></span>
+    <h1>ocp-datalake — Databricks to OpenShift AI</h1>
+    <div class="brand"><img src="assets/logos/redhat.svg" alt="">Red Hat</div>
+  </header>
+
+  <div class="mid">
+    <div class="outside">
+      <div class="lbl">Outside the cluster</div>
+      <img src="assets/logos/databricks.svg" alt="Databricks">
+      <div class="name">Databricks</div>
+      <div class="role">MLflow / Unity Catalog<br>(simulated PVC + model.json)</div>
+    </div>
+    <div class="hub">
+      <h2>OpenShift 4.20 · OpenShift AI 3.5</h2>
+      <div class="tiles">
+        <div class="tile">
+          <img src="assets/logos/openshift-ai.svg" alt="OpenShift AI">
+          <div class="name">OpenShift AI</div>
+          <div class="role">Model Registry · MaaS · serving</div>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/tekton.svg" alt="Tekton">
+          <div class="name">OpenShift Pipelines</div>
+          <div class="role">Tekton + Data Science Pipelines</div>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/argo-cd.svg" alt="Argo CD">
+          <div class="name">OpenShift GitOps</div>
+          <div class="role">Argo CD install path</div>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/keycloak-official.svg" alt="Keycloak">
+          <div class="name">Red Hat Build of Keycloak</div>
+          <div class="role">OIDC / RHBK</div>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/kuadrant.svg" alt="Kuadrant">
+          <div class="name">Connectivity Link</div>
+          <div class="role">Kuadrant MaaS gateway</div>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/kserve.svg" alt="KServe">
+          <div class="name">KServe</div>
+          <div class="role">churn-score CPU InferenceService</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spokes">
+    <div class="spoke">
+      <h3>Predictive path</h3>
+      <div class="pill">linear model.json</div>
+      <div class="pill">Route /predict</div>
+      <div class="pill">CPU only — no GPU</div>
+    </div>
+    <div class="spoke">
+      <h3>Models-as-a-Service</h3>
+      <div class="pill">LLMInferenceService CPU simulator</div>
+      <div class="pill">Gateway maas.&lt;apps-domain&gt;</div>
+      <div class="pill">sk-oai- API keys · Llama keeps the L4</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div><span class="sw"></span> artifact promotion</div>
+    <div><span class="sw red"></span> MaaS inference traffic</div>
+    <div><span class="sw blue"></span> GitOps / Pipelines</div>
+  </div>
+</body>
+</html>

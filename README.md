@@ -85,7 +85,7 @@ If validate fails, register and rollout do not run. The predictor loads `model.j
 
 **DSP storage honesty:** Data Science Pipelines uses an in-cluster **MinIO** stand-in (`manifests/10-dspa.yaml`) for pipeline artifacts and run history. That is development-only and separate from the model registry PVC. Production would use external S3-compatible storage.
 
-**Model Registry:** Instance manifest is `manifests/11-model-registry.yaml` (namespace `rhoai-model-registries`). Apply it separately from `oc apply -k .` because the main kustomization targets `ocp-datalake` only.
+**Model Registry:** Instance manifests live in `manifests/registry/` (namespace `rhoai-model-registries`). GitOps syncs that path; imperative fallback is `oc apply -k manifests/registry`. The root kustomization targets `ocp-datalake` only.
 
 **Tekton freeze branch:** `pipelines/openshift-pipelines` keeps the Tekton-only promotion (no DSP, no Model Registry register step) for rollback reference.
 
@@ -287,7 +287,7 @@ LICENSE                     Apache License 2.0
 apps/inference/server.py    inference HTTP contract (native + KServe v1)
 apps/model/model.json       hand-written linear artifact (not an MLflow directory)
 scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket (not on the live path)
-manifests/                  namespace, quota, DSPA, Model Registry RBAC, Tekton + KFP pipeline, KServe
+manifests/                  namespace, quota, DSPA, Tekton + KFP pipeline, KServe
 manifests/maas/             RHCL, Kuadrant, Gateway, Postgres, CPU simulator + MaaS CRs (not in root kustomization)
 manifests/registry/         Model Registry instance + pipeline RBAC (Argo app)
 gitops/                     OpenShift GitOps operator + Argo CD app-of-apps

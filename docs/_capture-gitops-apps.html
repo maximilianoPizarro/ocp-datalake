@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>OpenShift GitOps</title>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@600;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 1448px; height: 954px; overflow: hidden; background: #f0f0f0; color: #151515; }
+    body { font-family: "Red Hat Text", sans-serif; }
+    header {
+      background: #151515;
+      color: #fff;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+    .brand { font-family: "Red Hat Display", sans-serif; font-weight: 700; font-size: 22px; display: flex; gap: 12px; align-items: center; }
+    .brand img { height: 28px; }
+    .sub { color: #b8bbbe; font-size: 14px; }
+    main { padding: 28px 32px; }
+    h1 { font-family: "Red Hat Display", sans-serif; font-size: 28px; margin-bottom: 8px; }
+    .lede { color: #6a6e73; margin-bottom: 22px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d2d2d2; border-radius: 8px; overflow: hidden; }
+    th { text-align: left; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #6a6e73; padding: 14px 16px; border-bottom: 1px solid #d2d2d2; background: #fafafa; }
+    td { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-size: 15px; }
+    tr:last-child td { border-bottom: 0; }
+    .mono { font-family: "Red Hat Mono", monospace; font-size: 13px; }
+    .pill { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+    .ok { background: #f3faf2; color: #3e8635; }
+    .wave { color: #6a6e73; font-family: "Red Hat Mono", monospace; font-size: 13px; }
+    footer { position: absolute; bottom: 28px; left: 32px; right: 32px; color: #6a6e73; font-size: 13px; display: flex; justify-content: space-between; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><img src="assets/logos/argo-cd.svg" alt="">OpenShift GitOps</div>
+    <div class="sub">namespace openshift-gitops · app of apps</div>
+  </header>
+  <main>
+    <h1>Applications</h1>
+    <p class="lede">Source: <span class="mono">https://github.com/maximilianoPizarro/ocp-datalake.git</span> · revision <span class="mono">main</span> · prune off</p>
+    <table>
+      <thead>
+        <tr><th>Application</th><th>Path</th><th>Wave</th><th>Sync</th><th>Health</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ocp-datalake-root</td><td class="mono">gitops/apps</td><td class="wave">—</td><td><span class="pill ok">Synced</span></td><td><span class="pill ok">Healthy</span></td></tr>
+        <tr><td>ocp-datalake</td><td class="mono">. (churn-score)</td><td class="wave">0</td><td><span class="pill ok">Synced</span></td><td><span class="pill ok">Healthy</span></td></tr>
+        <tr><td>ocp-datalake-registry</td><td class="mono">manifests/registry</td><td class="wave">0</td><td><span class="pill ok">Synced</span></td><td><span class="pill ok">Healthy</span></td></tr>
+        <tr><td>ocp-datalake-maas-operators</td><td class="mono">manifests/maas/operators</td><td class="wave">0</td><td><span class="pill ok">Synced</span></td><td><span class="pill ok">Healthy</span></td></tr>
+        <tr><td>ocp-datalake-maas-cluster</td><td class="mono">manifests/maas/cluster</td><td class="wave">1</td><td><span class="pill ok">Synced</span></td><td><span class="pill ok">Healthy</span></td></tr>
+        <tr><td>ocp-datalake-maas-platform</td><td class="mono">manifests/maas/platform</td><td class="wave">2</td><td><span class="pill ok">Synced</span></td><td><span class="pill ok">Healthy</span></td></tr>
+        <tr><td>ocp-datalake-maas-postgres</td><td class="mono">manifests/maas/postgres</td><td class="wave">2</td><td><span class="pill ok">Synced</span></td><td><span class="pill ok">Healthy</span></td></tr>
+        <tr><td>ocp-datalake-maas-simulator</td><td class="mono">manifests/maas/simulator</td><td class="wave">3</td><td><span class="pill ok">Synced</span></td><td><span class="pill ok">Healthy</span></td></tr>
+      </tbody>
+    </table>
+  </main>
+  <footer>
+    <span>bash scripts/enable-gitops.sh</span>
+    <span>OpenTLC sandbox · 15 Sep 2026</span>
+  </footer>
+</body>
+</html>
