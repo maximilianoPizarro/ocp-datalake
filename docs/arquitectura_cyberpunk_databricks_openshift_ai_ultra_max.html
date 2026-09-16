@@ -288,6 +288,11 @@
 
       <!-- ACTION BUTTONS: LASER, GLITCH, HYPERDRIVE -->
       <div class="flex flex-wrap items-center gap-3">
+        <!-- AUTO PLAY SEQUENCE -->
+        <button onclick="toggleSequence()" id="btn-sequence" class="cyber-btn px-4 py-2 text-sm font-bold text-yellow-300 flex items-center gap-2 border-yellow-400 shadow-[0_0_12px_rgba(255,255,0,0.3)]">
+          <i data-lucide="play" class="w-4 h-4 text-yellow-300"></i> <span id="sequence-text">INICIAR SECUENCIA</span>
+        </button>
+
         <!-- Laser Packet Burst -->
         <button onclick="triggerDataBurst()" class="cyber-btn px-4 py-2 text-sm font-bold text-cyan-300 flex items-center gap-2 border-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.4)]">
           <i data-lucide="send" class="w-4 h-4 text-cyan-300"></i> RÁFAGA DE DATOS
@@ -1071,11 +1076,14 @@ spec:
 
     // CAMERA CONTROLS
     window.setCameraView = function(view) {
-      playSynthSound('click');
+      if (view !== 'orbit') playSynthSound('click');
       if (view === 'orbit') animateCameraTo(new THREE.Vector3(0, 24, 40), new THREE.Vector3(0, 3, 0));
       else if (view === 'pipeline') animateCameraTo(new THREE.Vector3(0, 14, 12), new THREE.Vector3(0, 8, -4));
-      else if (view === 'predict') animateCameraTo(new THREE.Vector3(-12, 8, 22), new THREE.Vector3(-8, 2, 10));
+      else if (view === 'predict' || view === 'kserve') animateCameraTo(new THREE.Vector3(-12, 8, 22), new THREE.Vector3(-8, 2, 10));
       else if (view === 'maas') animateCameraTo(new THREE.Vector3(12, 8, 22), new THREE.Vector3(8, 2, 10));
+      else if (view === 'gitops') animateCameraTo(new THREE.Vector3(0, 28, 14), new THREE.Vector3(0, 20, 0));
+      else if (view === 'databricks') animateCameraTo(new THREE.Vector3(-22, 18, 4), new THREE.Vector3(-16, 12, -10));
+      else if (view === 'registry') animateCameraTo(new THREE.Vector3(20, 16, 4), new THREE.Vector3(14, 10, -8));
     };
 
     function animateCameraTo(targetPos, targetLookAt) {
@@ -1115,6 +1123,54 @@ spec:
         glitchPass.uniforms['byp'].value = 1;
       }, 650);
     };
+
+    // SEQUENCE AUTO-PLAY LOGIC
+    let sequenceTimeout = null;
+    let isPlayingSequence = false;
+    const sequenceOrder = ['gitops', 'databricks', 'pipeline', 'registry', 'kserve', 'maas'];
+    let sequenceIndex = 0;
+
+    window.toggleSequence = function() {
+      const btn = document.getElementById('btn-sequence');
+      const text = document.getElementById('sequence-text');
+      
+      if (isPlayingSequence) {
+        isPlayingSequence = false;
+        clearTimeout(sequenceTimeout);
+        text.innerText = "INICIAR SECUENCIA";
+        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 text-yellow-300"></i> <span id="sequence-text">INICIAR SECUENCIA</span>`;
+        lucide.createIcons();
+        setCameraView('orbit');
+      } else {
+        isPlayingSequence = true;
+        sequenceIndex = 0;
+        btn.innerHTML = `<i data-lucide="square" class="w-4 h-4 text-yellow-300"></i> <span id="sequence-text">DETENER SECUENCIA</span>`;
+        lucide.createIcons();
+        playSynthSound('hyperdrive');
+        runSequenceStep();
+      }
+    };
+
+    function runSequenceStep() {
+      if (!isPlayingSequence) return;
+      
+      if (sequenceIndex >= sequenceOrder.length) {
+        setTimeout(() => {
+          if (isPlayingSequence) toggleSequence(); // Stop and reset
+        }, 5000);
+        return;
+      }
+
+      const key = sequenceOrder[sequenceIndex];
+      
+      setCameraView(key);
+      currentSelectedKey = key;
+      displayNodeYaml(key);
+      triggerDataBurst();
+      
+      sequenceIndex++;
+      sequenceTimeout = setTimeout(runSequenceStep, 5500);
+    }
 
     let isHyperdrive = false;
     window.toggleHyperdrive = function() {
