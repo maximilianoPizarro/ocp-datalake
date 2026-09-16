@@ -132,6 +132,9 @@
       white-space: nowrap;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       transition: opacity 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .html-label.hidden { opacity: 0; }
@@ -801,14 +804,14 @@ spec:
 
     // 3D NODES MESH GENERATION
     const nodeConfigs = {
-      databricks: { pos: { x: -16, y: 12, z: -10 }, size: [6, 2.2, 4.5], color: 0xff5500, label: "DATABRICKS" },
-      pipeline: { pos: { x: 0, y: 8, z: -4 }, size: [10, 2.8, 5.5], color: 0x9d4edd, label: "TEKTON PIPELINE" },
-      registry: { pos: { x: 14, y: 10, z: -8 }, size: [6, 2.0, 4.0], color: 0xffaa00, label: "MODEL REGISTRY" },
-      kserve: { pos: { x: -8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00ff88, label: "KSERVE PREDICTOR" },
-      maas: { pos: { x: 8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00f0ff, label: "MaaS GATEWAY" },
-      gitops: { pos: { x: 0, y: 20, z: 0 }, size: [8, 1.5, 8], color: 0xff0055, label: "ARGO CD GITOPS" },
-      kubeflow: { pos: { x: -8, y: 15, z: -2 }, size: [7, 2.5, 5], color: 0xff00aa, label: "KUBEFLOW (DSPA)" },
-      keycloak: { pos: { x: 16, y: 6, z: 4 }, size: [6, 3, 4], color: 0xffcc00, label: "KEYCLOAK (RHBK)" }
+      databricks: { pos: { x: -16, y: 12, z: -10 }, size: [6, 2.2, 4.5], color: 0xff5500, label: "DATABRICKS", icon: "assets/logos/databricks.svg" },
+      pipeline: { pos: { x: 0, y: 8, z: -4 }, size: [10, 2.8, 5.5], color: 0x9d4edd, label: "TEKTON PIPELINE", icon: "assets/logos/tekton.svg" },
+      registry: { pos: { x: 14, y: 10, z: -8 }, size: [6, 2.0, 4.0], color: 0xffaa00, label: "MODEL REGISTRY", icon: "assets/logos/openshift-ai.svg" },
+      kserve: { pos: { x: -8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00ff88, label: "KSERVE PREDICTOR", icon: "assets/logos/kserve.svg" },
+      maas: { pos: { x: 8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00f0ff, label: "MaaS GATEWAY", icon: "assets/logos/kuadrant.svg" },
+      gitops: { pos: { x: 0, y: 20, z: 0 }, size: [8, 1.5, 8], color: 0xff0055, label: "ARGO CD GITOPS", icon: "assets/logos/argo-cd.svg" },
+      kubeflow: { pos: { x: -8, y: 15, z: -2 }, size: [7, 2.5, 5], color: 0xff00aa, label: "KUBEFLOW (DSPA)", icon: "assets/logos/openshift-ai.svg" },
+      keycloak: { pos: { x: 16, y: 6, z: 4 }, size: [6, 3, 4], color: 0xffcc00, label: "KEYCLOAK (RHBK)", icon: "assets/logos/keycloak-official.svg" }
     };
 
     const interactiveObjects = [];
@@ -858,8 +861,14 @@ spec:
       // Create HTML Label
       const labelDiv = document.createElement('div');
       labelDiv.className = 'html-label';
-      labelDiv.innerText = config.label;
       labelDiv.style.borderColor = '#' + config.color.toString(16).padStart(6, '0');
+      
+      if (config.icon) {
+        labelDiv.innerHTML = `<img src="${config.icon}" alt="" style="height: 18px; object-fit: contain; filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));"> <span>${config.label}</span>`;
+      } else {
+        labelDiv.innerText = config.label;
+      }
+      
       labelsContainer.appendChild(labelDiv);
 
       htmlLabels.push({
