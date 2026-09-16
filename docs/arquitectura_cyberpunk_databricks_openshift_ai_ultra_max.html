@@ -284,14 +284,25 @@
         <button onclick="setCameraView('maas')" class="cyber-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 text-cyan-300 border-cyan-500/50">
           <i data-lucide="network" class="w-4 h-4 text-cyan-400"></i> MaaS
         </button>
+        <button onclick="setCameraView('kubeflow')" class="cyber-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 text-pink-300 border-pink-500/50">
+          <i data-lucide="git-commit" class="w-4 h-4 text-pink-400"></i> Kubeflow
+        </button>
+        <button onclick="setCameraView('keycloak')" class="cyber-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 text-yellow-300 border-yellow-500/50">
+          <i data-lucide="shield-check" class="w-4 h-4 text-yellow-400"></i> Keycloak
+        </button>
       </div>
 
       <!-- ACTION BUTTONS: LASER, GLITCH, HYPERDRIVE -->
       <div class="flex flex-wrap items-center gap-3">
         <!-- AUTO PLAY SEQUENCE -->
-        <button onclick="toggleSequence()" id="btn-sequence" class="cyber-btn px-4 py-2 text-sm font-bold text-yellow-300 flex items-center gap-2 border-yellow-400 shadow-[0_0_12px_rgba(255,255,0,0.3)]">
-          <i data-lucide="play" class="w-4 h-4 text-yellow-300"></i> <span id="sequence-text">INICIAR SECUENCIA</span>
-        </button>
+        <div class="flex gap-2">
+          <button onclick="toggleSequence('standard')" id="btn-sequence-std" class="cyber-btn px-3 py-2 text-xs font-bold text-yellow-300 flex items-center gap-1.5 border-yellow-400 shadow-[0_0_10px_rgba(255,255,0,0.3)]">
+            <i data-lucide="play" class="w-3.5 h-3.5 text-yellow-300"></i> <span id="sequence-text-std">SECUENCIA BASE</span>
+          </button>
+          <button onclick="toggleSequence('robust')" id="btn-sequence-rob" class="cyber-btn px-3 py-2 text-xs font-bold text-pink-400 flex items-center gap-1.5 border-pink-500 shadow-[0_0_10px_rgba(255,0,128,0.3)]">
+            <i data-lucide="play-circle" class="w-3.5 h-3.5 text-pink-400"></i> <span id="sequence-text-rob">ARQ. ROBUSTA</span>
+          </button>
+        </div>
 
         <!-- Laser Packet Burst -->
         <button onclick="triggerDataBurst()" class="cyber-btn px-4 py-2 text-sm font-bold text-cyan-300 flex items-center gap-2 border-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.4)]">
@@ -669,6 +680,48 @@ spec:
     automated:
       prune: true
       selfHeal: true`
+      },
+      kubeflow: {
+        title: "DATA SCIENCE PIPELINES (KFP)",
+        subtitle: "DataSciencePipelinesApplication",
+        desc: "Entorno de Kubeflow Pipelines (KFP) para orquestar flujos de ML complejos, tracking de experimentos y UI visual para científicos de datos.",
+        color: "#ff00aa",
+        yamlTitle: "10-dspa.yaml",
+        yaml: `apiVersion: datasciencepipelinesapplications.opendatahub.io/v1
+kind: DataSciencePipelinesApplication
+metadata:
+  name: dspa
+  namespace: ocp-datalake
+spec:
+  dspVersion: v2
+  apiServer:
+    deploy: true
+    enableOauth: true
+    pipelineStore: kubernetes
+  database:
+    mariaDB:
+      deploy: true
+      pvcSize: 1Gi`
+      },
+      keycloak: {
+        title: "RED HAT BUILD OF KEYCLOAK & AUTH",
+        subtitle: "Identity & Access Management",
+        desc: "Proveedor de identidad (IdP) del clúster. Emite tokens JWT, gestiona el flujo OAuth M2M y asegura los endpoints de inferencia con políticas de Kuadrant.",
+        color: "#ffcc00",
+        yamlTitle: "maas-auth-policy.yaml",
+        yaml: `apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSAuthPolicy
+metadata:
+  name: simulator-access
+  namespace: models-as-a-service
+spec:
+  modelRefs:
+    - name: facebook-opt-125m-simulated
+      namespace: llm
+  subjects:
+    groups:
+      - name: system:authenticated
+    users: []`
       }
     };
   </script>
@@ -753,7 +806,9 @@ spec:
       registry: { pos: { x: 14, y: 10, z: -8 }, size: [6, 2.0, 4.0], color: 0xffaa00, label: "MODEL REGISTRY" },
       kserve: { pos: { x: -8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00ff88, label: "KSERVE PREDICTOR" },
       maas: { pos: { x: 8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00f0ff, label: "MaaS GATEWAY" },
-      gitops: { pos: { x: 0, y: 20, z: 0 }, size: [8, 1.5, 8], color: 0xff0055, label: "ARGO CD GITOPS" }
+      gitops: { pos: { x: 0, y: 20, z: 0 }, size: [8, 1.5, 8], color: 0xff0055, label: "ARGO CD GITOPS" },
+      kubeflow: { pos: { x: -8, y: 15, z: -2 }, size: [7, 2.5, 5], color: 0xff00aa, label: "KUBEFLOW (DSPA)" },
+      keycloak: { pos: { x: 16, y: 6, z: 4 }, size: [6, 3, 4], color: 0xffcc00, label: "KEYCLOAK (RHBK)" }
     };
 
     const interactiveObjects = [];
@@ -821,15 +876,21 @@ spec:
 
     // LASER TUBE PIPELINES
     const connections = [
+      { from: 'databricks', to: 'kubeflow', color: 0xff5500 },
+      { from: 'kubeflow', to: 'pipeline', color: 0xff00aa },
       { from: 'databricks', to: 'pipeline', color: 0xff5500 },
       { from: 'pipeline', to: 'registry', color: 0x9d4edd },
       { from: 'pipeline', to: 'kserve', color: 0x00ff88 },
       { from: 'registry', to: 'kserve', color: 0xffaa00 },
       { from: 'registry', to: 'maas', color: 0x00f0ff },
       { from: 'gitops', to: 'pipeline', color: 0xff0055 },
+      { from: 'gitops', to: 'kubeflow', color: 0xff0055 },
+      { from: 'gitops', to: 'keycloak', color: 0xff0055 },
       { from: 'gitops', to: 'registry', color: 0xff0055 },
       { from: 'gitops', to: 'kserve', color: 0xff0055 },
-      { from: 'gitops', to: 'maas', color: 0xff0055 }
+      { from: 'gitops', to: 'maas', color: 0xff0055 },
+      { from: 'keycloak', to: 'maas', color: 0xffcc00 },
+      { from: 'keycloak', to: 'kserve', color: 0xffcc00 }
     ];
 
     const dataPaths = [];
@@ -1084,6 +1145,8 @@ spec:
       else if (view === 'gitops') animateCameraTo(new THREE.Vector3(0, 28, 14), new THREE.Vector3(0, 20, 0));
       else if (view === 'databricks') animateCameraTo(new THREE.Vector3(-22, 18, 4), new THREE.Vector3(-16, 12, -10));
       else if (view === 'registry') animateCameraTo(new THREE.Vector3(20, 16, 4), new THREE.Vector3(14, 10, -8));
+      else if (view === 'kubeflow') animateCameraTo(new THREE.Vector3(-14, 22, 8), new THREE.Vector3(-8, 15, -2));
+      else if (view === 'keycloak') animateCameraTo(new THREE.Vector3(24, 12, 14), new THREE.Vector3(16, 6, 4));
     };
 
     function animateCameraTo(targetPos, targetLookAt) {
@@ -1127,24 +1190,42 @@ spec:
     // SEQUENCE AUTO-PLAY LOGIC
     let sequenceTimeout = null;
     let isPlayingSequence = false;
-    const sequenceOrder = ['gitops', 'databricks', 'pipeline', 'registry', 'kserve', 'maas'];
+    let currentSequenceType = 'standard';
+    const sequenceOrders = {
+      standard: ['gitops', 'databricks', 'pipeline', 'registry', 'kserve', 'maas'],
+      robust: ['gitops', 'keycloak', 'databricks', 'kubeflow', 'pipeline', 'registry', 'maas']
+    };
     let sequenceIndex = 0;
 
-    window.toggleSequence = function() {
-      const btn = document.getElementById('btn-sequence');
-      const text = document.getElementById('sequence-text');
+    window.toggleSequence = function(type = 'standard') {
+      const btnStd = document.getElementById('btn-sequence-std');
+      const textStd = document.getElementById('sequence-text-std');
+      const btnRob = document.getElementById('btn-sequence-rob');
+      const textRob = document.getElementById('sequence-text-rob');
       
       if (isPlayingSequence) {
         isPlayingSequence = false;
         clearTimeout(sequenceTimeout);
-        text.innerText = "INICIAR SECUENCIA";
-        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 text-yellow-300"></i> <span id="sequence-text">INICIAR SECUENCIA</span>`;
+        
+        textStd.innerText = "SECUENCIA BASE";
+        btnStd.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5 text-yellow-300"></i> <span id="sequence-text-std">SECUENCIA BASE</span>`;
+        
+        textRob.innerText = "ARQ. ROBUSTA";
+        btnRob.innerHTML = `<i data-lucide="play-circle" class="w-3.5 h-3.5 text-pink-400"></i> <span id="sequence-text-rob">ARQ. ROBUSTA</span>`;
+        
         lucide.createIcons();
         setCameraView('orbit');
       } else {
         isPlayingSequence = true;
+        currentSequenceType = type;
         sequenceIndex = 0;
-        btn.innerHTML = `<i data-lucide="square" class="w-4 h-4 text-yellow-300"></i> <span id="sequence-text">DETENER SECUENCIA</span>`;
+        
+        if (type === 'standard') {
+          btnStd.innerHTML = `<i data-lucide="square" class="w-3.5 h-3.5 text-yellow-300"></i> <span id="sequence-text-std">DETENER BASE</span>`;
+        } else {
+          btnRob.innerHTML = `<i data-lucide="square" class="w-3.5 h-3.5 text-pink-400"></i> <span id="sequence-text-rob">DETENER ROBUSTA</span>`;
+        }
+        
         lucide.createIcons();
         playSynthSound('hyperdrive');
         runSequenceStep();
@@ -1154,14 +1235,16 @@ spec:
     function runSequenceStep() {
       if (!isPlayingSequence) return;
       
-      if (sequenceIndex >= sequenceOrder.length) {
+      const order = sequenceOrders[currentSequenceType];
+      
+      if (sequenceIndex >= order.length) {
         setTimeout(() => {
-          if (isPlayingSequence) toggleSequence(); // Stop and reset
+          if (isPlayingSequence) toggleSequence(currentSequenceType); // Stop and reset
         }, 5000);
         return;
       }
 
-      const key = sequenceOrder[sequenceIndex];
+      const key = order[sequenceIndex];
       
       setCameraView(key);
       currentSelectedKey = key;
@@ -1233,6 +1316,8 @@ spec:
       if (nodeMeshes.kserve) nodeMeshes.kserve.position.y = nodeConfigs.kserve.pos.y + Math.sin(elapsedTime * 2.4) * 0.25;
       if (nodeMeshes.maas) nodeMeshes.maas.position.y = nodeConfigs.maas.pos.y + Math.cos(elapsedTime * 2.4) * 0.25;
       if (nodeMeshes.gitops) nodeMeshes.gitops.position.y = nodeConfigs.gitops.pos.y + Math.sin(elapsedTime * 1.5) * 0.2;
+      if (nodeMeshes.kubeflow) nodeMeshes.kubeflow.position.y = nodeConfigs.kubeflow.pos.y + Math.sin(elapsedTime * 1.9) * 0.3;
+      if (nodeMeshes.keycloak) nodeMeshes.keycloak.position.y = nodeConfigs.keycloak.pos.y + Math.cos(elapsedTime * 2.1) * 0.3;
 
       // Update data packet movements along curves
       dataPackets.forEach(p => {
