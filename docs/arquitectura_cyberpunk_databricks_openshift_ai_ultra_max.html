@@ -305,6 +305,9 @@
           <button onclick="toggleSequence('robust')" id="btn-sequence-rob" class="cyber-btn px-3 py-2 text-xs font-bold text-pink-400 flex items-center gap-1.5 border-pink-500 shadow-[0_0_10px_rgba(255,0,128,0.3)]">
             <i data-lucide="play-circle" class="w-3.5 h-3.5 text-pink-400"></i> <span id="sequence-text-rob">ARQ. ROBUSTA</span>
           </button>
+          <button onclick="toggleSequence('ultra')" id="btn-sequence-ult" class="cyber-btn px-3 py-2 text-xs font-bold text-cyan-300 flex items-center gap-1.5 border-cyan-400 shadow-[0_0_10px_rgba(0,240,255,0.3)]">
+            <i data-lucide="cpu" class="w-3.5 h-3.5 text-cyan-300"></i> <span id="sequence-text-ult">ULTRA MAX</span>
+          </button>
         </div>
 
         <!-- Laser Packet Burst -->
@@ -704,6 +707,65 @@ spec:
       prune: true
       selfHeal: true`
       },
+      odf: {
+        title: "OPENSHIFT DATA FOUNDATION",
+        subtitle: "S3 ObjectBucketClaim / NooBaa",
+        desc: "Almacenamiento de objetos S3 nativo. Actúa como el Data Lakehouse central donde aterrizan los artefactos desde Databricks antes de ser servidos.",
+        color: "#0088ff",
+        yamlTitle: "03-registry-obc.yaml",
+        yaml: `apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: model-lakehouse-bucket
+  namespace: ocp-datalake
+spec:
+  generateBucketName: model-lakehouse
+  storageClassName: openshift-storage.noobaa.io`
+      },
+      feast: {
+        title: "FEAST FEATURE STORE",
+        subtitle: "Online Feature Serving",
+        desc: "Almacén de características. Provee datos de contexto en tiempo real (baja latencia) a los modelos servidos en KServe durante la inferencia.",
+        color: "#3e8635",
+        yamlTitle: "feast-feature-server.yaml",
+        yaml: `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feast-online-serving
+  namespace: ocp-datalake
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: feast-server
+          image: feastdev/feature-server:0.32
+          env:
+            - name: REDIS_HOST
+              value: "redis-master.ocp-datalake.svc"`
+      },
+      mlflow: {
+        title: "MLFLOW TRACKING SERVER",
+        subtitle: "Experiment & Metadata Tracking",
+        desc: "Servidor de seguimiento de MLflow auto-hospedado. Registra métricas, parámetros y linaje de los experimentos ejecutados por Kubeflow y Databricks.",
+        color: "#0194e2",
+        yamlTitle: "mlflow-tracking.yaml",
+        yaml: `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-server
+  namespace: ocp-datalake
+spec:
+  template:
+    spec:
+      containers:
+        - name: mlflow
+          image: bitnami/mlflow:2.14.1
+          args:
+            - server
+            - --backend-store-uri=postgresql://...
+            - --default-artifact-root=s3://model-lakehouse/`
+      },
       kubeflow: {
         title: "DATA SCIENCE PIPELINES (KFP)",
         subtitle: "DataSciencePipelinesApplication",
@@ -824,14 +886,17 @@ spec:
 
     // 3D NODES MESH GENERATION
     const nodeConfigs = {
-      databricks: { pos: { x: -16, y: 12, z: -10 }, size: [6, 2.2, 4.5], color: 0xff5500, label: "DATABRICKS", icon: "assets/logos/databricks.svg" },
-      pipeline: { pos: { x: 0, y: 8, z: -4 }, size: [10, 2.8, 5.5], color: 0x9d4edd, label: "TEKTON PIPELINE", icon: "assets/logos/tekton.svg" },
+      databricks: { pos: { x: -22, y: 12, z: -12 }, size: [6, 2.2, 4.5], color: 0xff5500, label: "DATABRICKS", icon: "assets/logos/databricks.svg" },
+      pipeline: { pos: { x: 0, y: 10, z: -4 }, size: [10, 2.8, 5.5], color: 0x9d4edd, label: "TEKTON PIPELINE", icon: "assets/logos/tekton.svg" },
       registry: { pos: { x: 14, y: 10, z: -8 }, size: [6, 2.0, 4.0], color: 0xffaa00, label: "MODEL REGISTRY", icon: "assets/logos/openshift-ai.svg" },
-      kserve: { pos: { x: -8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00ff88, label: "KSERVE PREDICTOR", icon: "assets/logos/kserve.svg" },
-      maas: { pos: { x: 8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00f0ff, label: "MaaS GATEWAY", icon: "assets/logos/kuadrant.svg" },
-      gitops: { pos: { x: 0, y: 20, z: 0 }, size: [8, 1.5, 8], color: 0xff0055, label: "ARGO CD GITOPS", icon: "assets/logos/argo-cd.svg" },
-      kubeflow: { pos: { x: -8, y: 15, z: -2 }, size: [7, 2.5, 5], color: 0xff00aa, label: "KUBEFLOW (DSPA)", icon: "assets/logos/openshift-ai.svg" },
-      keycloak: { pos: { x: 16, y: 6, z: 4 }, size: [6, 3, 4], color: 0xffcc00, label: "KEYCLOAK (RHBK)", icon: "assets/logos/keycloak-official.svg" }
+      kserve: { pos: { x: -8, y: 2, z: 12 }, size: [6.5, 2.2, 4.5], color: 0x00ff88, label: "KSERVE PREDICTOR", icon: "assets/logos/kserve.svg" },
+      maas: { pos: { x: 8, y: 2, z: 12 }, size: [6.5, 2.2, 4.5], color: 0x00f0ff, label: "MaaS GATEWAY", icon: "assets/logos/kuadrant.svg" },
+      gitops: { pos: { x: 0, y: 24, z: 0 }, size: [8, 1.5, 8], color: 0xff0055, label: "ARGO CD GITOPS", icon: "assets/logos/argo-cd.svg" },
+      kubeflow: { pos: { x: -10, y: 16, z: -2 }, size: [7, 2.5, 5], color: 0xff00aa, label: "KUBEFLOW (DSPA)", icon: "assets/logos/openshift-ai.svg" },
+      keycloak: { pos: { x: 18, y: 6, z: 4 }, size: [6, 3, 4], color: 0xffcc00, label: "KEYCLOAK (RHBK)", icon: "assets/logos/keycloak-official.svg" },
+      odf: { pos: { x: 0, y: 3, z: -12 }, size: [8, 2, 6], color: 0x0088ff, label: "ODF (NOOBAA S3)", icon: "assets/logos/odf.svg" },
+      feast: { pos: { x: -20, y: 2, z: 6 }, size: [6, 2.5, 4.5], color: 0x3e8635, label: "FEAST STORE", icon: "assets/logos/feast.svg" },
+      mlflow: { pos: { x: -20, y: 18, z: -6 }, size: [6, 2.5, 4.5], color: 0x0194e2, label: "MLFLOW TRACKING", icon: "assets/logos/mlflow.svg" }
     };
 
     const interactiveObjects = [];
@@ -905,12 +970,15 @@ spec:
 
     // LASER TUBE PIPELINES
     const connections = [
+      { from: 'databricks', to: 'mlflow', color: 0xff5500 },
+      { from: 'kubeflow', to: 'mlflow', color: 0xff00aa },
       { from: 'databricks', to: 'kubeflow', color: 0xff5500 },
       { from: 'kubeflow', to: 'pipeline', color: 0xff00aa },
-      { from: 'databricks', to: 'pipeline', color: 0xff5500 },
-      { from: 'pipeline', to: 'registry', color: 0x9d4edd },
-      { from: 'pipeline', to: 'kserve', color: 0x00ff88 },
-      { from: 'registry', to: 'kserve', color: 0xffaa00 },
+      { from: 'databricks', to: 'odf', color: 0xff5500 },
+      { from: 'pipeline', to: 'odf', color: 0x9d4edd },
+      { from: 'odf', to: 'registry', color: 0x0088ff },
+      { from: 'odf', to: 'kserve', color: 0x0088ff },
+      { from: 'feast', to: 'kserve', color: 0x3e8635 },
       { from: 'registry', to: 'maas', color: 0x00f0ff },
       { from: 'gitops', to: 'pipeline', color: 0xff0055 },
       { from: 'gitops', to: 'kubeflow', color: 0xff0055 },
@@ -918,6 +986,9 @@ spec:
       { from: 'gitops', to: 'registry', color: 0xff0055 },
       { from: 'gitops', to: 'kserve', color: 0xff0055 },
       { from: 'gitops', to: 'maas', color: 0xff0055 },
+      { from: 'gitops', to: 'odf', color: 0xff0055 },
+      { from: 'gitops', to: 'feast', color: 0xff0055 },
+      { from: 'gitops', to: 'mlflow', color: 0xff0055 },
       { from: 'keycloak', to: 'maas', color: 0xffcc00 },
       { from: 'keycloak', to: 'kserve', color: 0xffcc00 }
     ];
@@ -1176,6 +1247,9 @@ spec:
       else if (view === 'registry') animateCameraTo(new THREE.Vector3(20, 16, 4), new THREE.Vector3(14, 10, -8));
       else if (view === 'kubeflow') animateCameraTo(new THREE.Vector3(-14, 22, 8), new THREE.Vector3(-8, 15, -2));
       else if (view === 'keycloak') animateCameraTo(new THREE.Vector3(24, 12, 14), new THREE.Vector3(16, 6, 4));
+      else if (view === 'odf') animateCameraTo(new THREE.Vector3(0, 10, 4), new THREE.Vector3(0, 3, -12));
+      else if (view === 'feast') animateCameraTo(new THREE.Vector3(-26, 8, 18), new THREE.Vector3(-20, 2, 6));
+      else if (view === 'mlflow') animateCameraTo(new THREE.Vector3(-26, 24, 6), new THREE.Vector3(-20, 18, -6));
     };
 
     function animateCameraTo(targetPos, targetLookAt) {
@@ -1222,7 +1296,8 @@ spec:
     let currentSequenceType = 'standard';
     const sequenceOrders = {
       standard: ['gitops', 'databricks', 'pipeline', 'registry', 'kserve', 'maas'],
-      robust: ['gitops', 'keycloak', 'databricks', 'kubeflow', 'pipeline', 'registry', 'maas']
+      robust: ['gitops', 'keycloak', 'databricks', 'kubeflow', 'pipeline', 'registry', 'maas'],
+      ultra: ['gitops', 'keycloak', 'databricks', 'mlflow', 'kubeflow', 'pipeline', 'odf', 'registry', 'feast', 'kserve', 'maas']
     };
     let sequenceIndex = 0;
 
@@ -1231,6 +1306,8 @@ spec:
       const textStd = document.getElementById('sequence-text-std');
       const btnRob = document.getElementById('btn-sequence-rob');
       const textRob = document.getElementById('sequence-text-rob');
+      const btnUlt = document.getElementById('btn-sequence-ult');
+      const textUlt = document.getElementById('sequence-text-ult');
       
       if (isPlayingSequence) {
         isPlayingSequence = false;
@@ -1241,6 +1318,9 @@ spec:
         
         textRob.innerText = "ARQ. ROBUSTA";
         btnRob.innerHTML = `<i data-lucide="play-circle" class="w-3.5 h-3.5 text-pink-400"></i> <span id="sequence-text-rob">ARQ. ROBUSTA</span>`;
+
+        textUlt.innerText = "ULTRA MAX";
+        btnUlt.innerHTML = `<i data-lucide="cpu" class="w-3.5 h-3.5 text-cyan-300"></i> <span id="sequence-text-ult">ULTRA MAX</span>`;
         
         lucide.createIcons();
         setCameraView('orbit');
@@ -1251,8 +1331,10 @@ spec:
         
         if (type === 'standard') {
           btnStd.innerHTML = `<i data-lucide="square" class="w-3.5 h-3.5 text-yellow-300"></i> <span id="sequence-text-std">DETENER BASE</span>`;
-        } else {
+        } else if (type === 'robust') {
           btnRob.innerHTML = `<i data-lucide="square" class="w-3.5 h-3.5 text-pink-400"></i> <span id="sequence-text-rob">DETENER ROBUSTA</span>`;
+        } else {
+          btnUlt.innerHTML = `<i data-lucide="square" class="w-3.5 h-3.5 text-cyan-300"></i> <span id="sequence-text-ult">DETENER ULTRA</span>`;
         }
         
         lucide.createIcons();
@@ -1347,6 +1429,9 @@ spec:
       if (nodeMeshes.gitops) nodeMeshes.gitops.position.y = nodeConfigs.gitops.pos.y + Math.sin(elapsedTime * 1.5) * 0.2;
       if (nodeMeshes.kubeflow) nodeMeshes.kubeflow.position.y = nodeConfigs.kubeflow.pos.y + Math.sin(elapsedTime * 1.9) * 0.3;
       if (nodeMeshes.keycloak) nodeMeshes.keycloak.position.y = nodeConfigs.keycloak.pos.y + Math.cos(elapsedTime * 2.1) * 0.3;
+      if (nodeMeshes.odf) nodeMeshes.odf.position.y = nodeConfigs.odf.pos.y + Math.sin(elapsedTime * 1.6) * 0.25;
+      if (nodeMeshes.feast) nodeMeshes.feast.position.y = nodeConfigs.feast.pos.y + Math.cos(elapsedTime * 2.3) * 0.3;
+      if (nodeMeshes.mlflow) nodeMeshes.mlflow.position.y = nodeConfigs.mlflow.pos.y + Math.sin(elapsedTime * 2.1) * 0.3;
 
       // Update data packet movements along curves
       dataPackets.forEach(p => {
