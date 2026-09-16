@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBER-MATRIX: Databricks ➔ OpenShift AI</title>
+
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Three.js + PostProcessing Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/DigitalGlitch.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&display=swap');
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #020208;
+      color: #00f0ff;
+      font-family: 'Share Tech Mono', monospace;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .font-orbitron { font-family: 'Orbitron', sans-serif; }
+    .font-code { font-family: 'Fira Code', monospace; }
+
+    /* CRT Scanline Overlay */
+    .scanlines {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .glow-cyan { text-shadow: 0 0 8px rgba(0, 240, 255, 0.6); }
+    .glow-magenta { text-shadow: 0 0 8px rgba(255, 0, 128, 0.6); }
+
+    .cyber-panel {
+      background: rgba(4, 10, 24, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.15), inset 0 0 10px rgba(0, 240, 255, 0.1);
+      clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+    }
+
+    .cyber-panel-pink {
+      background: rgba(24, 4, 18, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 0, 128, 0.5);
+      box-shadow: 0 0 20px rgba(255, 0, 128, 0.15), inset 0 0 10px rgba(255, 0, 128, 0.1);
+      clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+    }
+
+    .cyber-btn {
+      position: relative;
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(0, 240, 255, 0.6);
+      color: #00f0ff;
+      transition: all 0.2s ease-out;
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .cyber-btn:hover {
+      background: rgba(0, 240, 255, 0.35);
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .cyber-btn:active { transform: translateY(1px); }
+
+    /* Crosshair Center Reticle */
+    .crosshair {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 54px; height: 54px;
+      pointer-events: none;
+      z-index: 15;
+      opacity: 0.3;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.6); }
+    ::-webkit-scrollbar-thumb { background: #00f0ff; border-radius: 3px; }
+
+    /* YAML Syntax Highlighting */
+    .yaml-key { color: #00f0ff; font-weight: 600; }
+    .yaml-str { color: #00ff88; }
+    .yaml-num { color: #ff007f; }
+    .yaml-comment { color: #64748b; font-style: italic; }
+    .yaml-val { color: #ffd700; }
+
+    /* 3D HTML Labels */
+    .html-label {
+      position: absolute;
+      top: 0; left: 0;
+      transform: translate(-50%, -50%);
+      background: rgba(2, 8, 20, 0.9);
+      border: 2px solid;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+      pointer-events: none;
+      z-index: 10;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      transition: opacity 0.2s;
+    }
+
+    .html-label.hidden { opacity: 0; }
+  </style>
+</head>
+<body class="bg-black text-cyan-400 overflow-hidden">
+
+  <div class="scanlines"></div>
+
+  <!-- Reticle -->
+  <div class="crosshair">
+    <div class="absolute inset-0 border border-cyan-400/50 rounded-full animate-ping"></div>
+    <div class="absolute top-1/2 left-0 right-0 h-[1px] bg-cyan-400/40"></div>
+    <div class="absolute left-1/2 top-0 bottom-0 w-[1px] bg-cyan-400/40"></div>
+  </div>
+
+  <!-- HTML Labels Container -->
+  <div id="labels-container" class="absolute inset-0 pointer-events-none z-10"></div>
+
+  <!-- Canvas 3D Container -->
+  <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+  <!-- HUD MAIN LAYER -->
+  <div class="relative z-20 w-full h-full p-4 md:p-6 flex flex-col justify-between pointer-events-none">
+    
+    <!-- TOP CONTROL & HEADER BAR -->
+    <div class="w-full flex flex-wrap justify-between items-start gap-4 pointer-events-auto">
+      
+      <!-- Title Block -->
+      <div class="cyber-panel p-4 max-w-2xl flex-1 min-w-[300px]">
+        <div class="flex items-center gap-4 mb-2">
+          <a href="index.html" class="cyber-btn px-3 py-1.5 text-sm flex items-center gap-2" title="Volver al Journey">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> VOLVER
+          </a>
+          <div class="w-4 h-4 bg-cyan-400 rounded-sm animate-pulse shadow-[0_0_12px_#00f0ff]"></div>
+          <h1 class="font-orbitron font-black text-lg md:text-2xl tracking-widest text-cyan-300 glow-cyan uppercase">
+            Matrix: Databricks ➔ OpenShift AI
+          </h1>
+        </div>
+        <p class="text-xs md:text-sm text-cyan-400/90 tracking-wider uppercase font-semibold">
+          Conexión real YAML • Tekton Pipeline • Gobernanza KServe & MaaS
+        </p>
+      </div>
+
+      <!-- Live Telemetry & Audio Control Panel -->
+      <div class="cyber-panel p-3 flex flex-wrap items-center gap-4 text-sm font-mono">
+        <!-- Status -->
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="text-emerald-400 font-bold" id="status-text">OCP 4.20: ONLINE</span>
+        </div>
+        <div class="h-5 w-[1px] bg-cyan-500/30"></div>
+        
+        <!-- Web Audio Synthesizer Master Toggle -->
+        <button id="btn-audio" onclick="toggleAudio()" class="cyber-btn px-3 py-1.5 flex items-center gap-2 text-cyan-300 font-bold text-xs">
+          <i data-lucide="volume-2" id="audio-icon" class="w-4 h-4"></i>
+          <span id="audio-text">SYNTH: OFF</span>
+        </button>
+
+        <!-- Ambient Drone Toggle -->
+        <button id="btn-drone" onclick="toggleDrone()" class="cyber-btn px-3 py-1.5 flex items-center gap-2 text-purple-300 font-bold text-xs border-purple-500/50">
+          <i data-lucide="radio" class="w-4 h-4 text-purple-400"></i>
+          <span id="drone-text">DRONE: OFF</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MIDDLE FLOATING PANEL: HOLOGRAPHIC YAML TERMINAL & DIAGNOSTICS -->
+    <div class="w-full flex flex-col lg:flex-row justify-between items-end gap-6 my-auto">
+      
+      <!-- LEFT: NODE DIAGNOSTIC & CANVAS REALTIME LATENCY GRAPH -->
+      <div id="info-card" class="cyber-panel p-5 w-full lg:w-[380px] pointer-events-auto transition-all duration-300 border-l-4 border-l-cyan-400 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <span id="info-tag" class="text-xs px-2 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-bold uppercase tracking-wider">
+              NODO SELECCIONADO
+            </span>
+            <span id="info-id" class="text-xs text-slate-400 font-mono">ID: PIPELINE</span>
+          </div>
+          <h2 id="info-title" class="font-orbitron font-bold text-lg text-cyan-300 glow-cyan uppercase mt-2">
+            TEKTON PIPELINE
+          </h2>
+          <p id="info-subtitle" class="text-sm text-pink-400 font-bold mt-1">
+            seed → validate → register → rollout
+          </p>
+          <p id="info-desc" class="text-sm text-slate-300 mt-3 leading-relaxed h-20 overflow-y-auto">
+            Pipeline de promoción de modelos. Emula la descarga del artefacto, valida su contrato JSON, lo registra en Model Registry y lo despliega.
+          </p>
+        </div>
+
+        <!-- Realtime Latency / Throughput Canvas Monitor -->
+        <div class="mt-4 pt-3 border-t border-cyan-500/20">
+          <div class="flex justify-between items-center text-xs text-slate-400 mb-2">
+            <span>TELEMETRÍA DE INFERENCIA</span>
+            <span id="chart-stat" class="text-emerald-400 font-bold">1.12 ms | 6,840 req/s</span>
+          </div>
+          <canvas id="latency-chart" class="w-full h-16 bg-black/60 rounded border border-cyan-500/30"></canvas>
+        </div>
+      </div>
+
+      <!-- RIGHT: HOLOGRAPHIC KUBERNETES / RHOAI YAML MANIFEST TERMINAL -->
+      <div class="cyber-panel-pink p-5 w-full lg:w-[540px] h-[420px] flex flex-col justify-between pointer-events-auto relative">
+        <!-- Terminal Header -->
+        <div class="flex justify-between items-center border-b border-pink-500/40 pb-3 mb-3">
+          <div class="flex items-center gap-3">
+            <i data-lucide="file-code" class="w-5 h-5 text-pink-400"></i>
+            <span class="text-sm font-bold text-pink-300 font-orbitron tracking-wider" id="yaml-title">
+              MANIFIESTO YAML: 07-pipeline.yaml
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="copyYamlToClipboard()" class="cyber-btn px-3 py-1 text-xs text-cyan-300 flex items-center gap-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> COPIAR
+            </button>
+            <button onclick="deployManifestEffect()" class="cyber-btn px-3 py-1 text-xs text-emerald-300 border-emerald-500/50 flex items-center gap-1.5">
+              <i data-lucide="rocket" class="w-3.5 h-3.5"></i> DESPLEGAR
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Typing YAML Code Display -->
+        <div id="yaml-container" class="flex-1 overflow-y-auto font-code text-[13px] bg-black/80 p-4 rounded border border-pink-500/30 text-slate-200 leading-relaxed whitespace-pre">
+<!-- YAML dynamic content loaded via JS -->
+        </div>
+
+        <!-- Terminal Status Footer -->
+        <div class="mt-3 pt-2 border-t border-pink-500/20 flex justify-between items-center text-xs text-slate-400">
+          <span id="yaml-status" class="text-emerald-400 font-mono">✔ SYNCED WITH KUBERNETES API</span>
+          <span class="text-pink-400 animate-pulse font-bold">● RHOAI 3.5</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM CONTROLS & ACTION BUTTONS -->
+    <div class="w-full flex flex-wrap justify-between items-center gap-4 pt-4 border-t border-cyan-500/30 pointer-events-auto">
+      
+      <!-- CAMERA PRESETS -->
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm text-slate-300 font-orbitron font-bold mr-2 hidden sm:inline">CÁMARA:</span>
+        <button onclick="setCameraView('orbit')" class="cyber-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+          <i data-lucide="rotate-cw" class="w-4 h-4"></i> Órbita
+        </button>
+        <button onclick="setCameraView('pipeline')" class="cyber-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 text-purple-300 border-purple-500/50">
+          <i data-lucide="git-merge" class="w-4 h-4 text-purple-400"></i> Pipeline
+        </button>
+        <button onclick="setCameraView('predict')" class="cyber-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 text-emerald-300 border-emerald-500/50">
+          <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i> Predict
+        </button>
+        <button onclick="setCameraView('maas')" class="cyber-btn px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 text-cyan-300 border-cyan-500/50">
+          <i data-lucide="network" class="w-4 h-4 text-cyan-400"></i> MaaS
+        </button>
+      </div>
+
+      <!-- ACTION BUTTONS: LASER, GLITCH, HYPERDRIVE -->
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Laser Packet Burst -->
+        <button onclick="triggerDataBurst()" class="cyber-btn px-4 py-2 text-sm font-bold text-cyan-300 flex items-center gap-2 border-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.4)]">
+          <i data-lucide="send" class="w-4 h-4 text-cyan-300"></i> RÁFAGA DE DATOS
+        </button>
+
+        <!-- Glitch Simulation -->
+        <button onclick="triggerGlitchEffect()" class="cyber-btn px-4 py-2 text-sm font-bold text-pink-400 border-pink-500/60 flex items-center gap-2">
+          <i data-lucide="activity" class="w-4 h-4 text-pink-400"></i> GLITCH SHADER
+        </button>
+
+        <!-- HYPERDRIVE / OVERCLOCK MODE -->
+        <button onclick="toggleHyperdrive()" id="btn-hyperdrive" class="cyber-btn px-4 py-2 text-sm font-bold text-amber-300 border-amber-400 flex items-center gap-2 shadow-[0_0_12px_rgba(255,170,0,0.3)]">
+          <i data-lucide="zap" class="w-4 h-4 text-amber-300 animate-pulse"></i> HYPERDRIVE
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // PROCEDURAL WEB AUDIO SYNTHESIZER 2.0
+    // ==========================================
+    let audioCtx = null;
+    let audioEnabled = false;
+    let droneGain = null;
+    let droneOsc = null;
+    let droneEnabled = false;
+
+    function initAudioContext() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function toggleAudio() {
+      initAudioContext();
+      audioEnabled = !audioEnabled;
+      const text = document.getElementById('audio-text');
+      const icon = document.getElementById('audio-icon');
+      
+      if (audioEnabled) {
+        text.innerText = 'SYNTH: ON';
+        icon.setAttribute('data-lucide', 'volume-2');
+        playSynthSound('click');
+      } else {
+        text.innerText = 'SYNTH: OFF';
+        icon.setAttribute('data-lucide', 'volume-x');
+      }
+      lucide.createIcons();
+    }
+
+    function toggleDrone() {
+      initAudioContext();
+      droneEnabled = !droneEnabled;
+      const text = document.getElementById('drone-text');
+
+      if (droneEnabled) {
+        text.innerText = 'DRONE: ON';
+        startClusterDrone();
+      } else {
+        text.innerText = 'DRONE: OFF';
+        stopClusterDrone();
+      }
+    }
+
+    function startClusterDrone() {
+      if (!audioCtx || !droneEnabled) return;
+      
+      droneOsc = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      droneGain = audioCtx.createGain();
+
+      droneOsc.type = 'sawtooth';
+      droneOsc.frequency.setValueAtTime(42, audioCtx.currentTime);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(120, audioCtx.currentTime);
+
+      droneGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+      droneGain.gain.exponentialRampToValueAtTime(0.08, audioCtx.currentTime + 2);
+
+      droneOsc.connect(filter);
+      filter.connect(droneGain);
+      droneGain.connect(audioCtx.destination);
+
+      droneOsc.start();
+    }
+
+    function stopClusterDrone() {
+      if (droneGain && audioCtx) {
+        droneGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.8);
+        setTimeout(() => {
+          if (droneOsc) droneOsc.stop();
+        }, 850);
+      }
+    }
+
+    function playSynthSound(type) {
+      if (!audioEnabled) return;
+      initAudioContext();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'hover') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(700, now);
+        osc.frequency.exponentialRampToValueAtTime(1400, now + 0.03);
+        gain.gain.setValueAtTime(0.03, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.03);
+      } else if (type === 'click') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.06);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      } else if (type === 'laser') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1800, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.18);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else if (type === 'burst') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(2200, now + 0.35);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.38);
+      } else if (type === 'glitch') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(90, now);
+        osc.frequency.setValueAtTime(450, now + 0.05);
+        osc.frequency.setValueAtTime(120, now + 0.1);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      } else if (type === 'hyperdrive') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.linearRampToValueAtTime(1600, now + 0.5);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.65);
+      } else if (type === 'typing') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1500 + Math.random() * 800, now);
+        gain.gain.setValueAtTime(0.02, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.02);
+      }
+    }
+  </script>
+
+  <script>
+    // ==========================================
+    // KUBERNETES / OPENSHIFT AI MANIFEST DATA
+    // ==========================================
+    const nodeManifests = {
+      databricks: {
+        title: "DATABRICKS (EXTERNAL)",
+        subtitle: "Training & Model Export",
+        desc: "Workspace externo. En un escenario real, los modelos entrenados se exportan a Unity Catalog y MLflow. Aquí se simula mediante una tarea 'seed' en Tekton.",
+        color: "#ff5500",
+        yamlTitle: "07-pipeline.yaml (Task: seed)",
+        yaml: `apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: seed-databricks-registry
+  namespace: ocp-datalake
+spec:
+  description: Publish a versioned model artifact into the registry volume (Databricks stand-in).
+  workspaces:
+    - name: assets
+    - name: registry
+  steps:
+    - name: put
+      image: image-registry.openshift-image-registry.svc:5000/openshift/python:3.12-ubi9
+      script: |
+        #!/usr/bin/env bash
+        dest="$(workspaces.registry.path)/\${MODEL_KEY}"
+        cp "$(workspaces.assets.path)/model.json" "$dest"
+        echo "put file://\${dest}"`
+      },
+      pipeline: {
+        title: "TEKTON PIPELINE (PROMOTION)",
+        subtitle: "seed → validate → register → rollout",
+        desc: "Pipeline de promoción de modelos. Emula la descarga del artefacto, valida su contrato JSON, lo registra en Model Registry y lo despliega.",
+        color: "#9d4edd",
+        yamlTitle: "07-pipeline.yaml",
+        yaml: `apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: notebook-to-openshift
+  namespace: ocp-datalake
+spec:
+  description: Databricks-style registry publish, then OpenShift pull/validate/serve.
+  workspaces:
+    - name: assets
+    - name: registry
+    - name: scratch
+  tasks:
+    - name: seed
+      taskRef:
+        kind: Task
+        name: seed-databricks-registry
+    - name: pull-validate
+      taskRef:
+        kind: Task
+        name: pull-validate-model
+      runAfter: [seed]
+    - name: register
+      taskRef:
+        kind: Task
+        name: register-model
+      runAfter: [pull-validate]
+    - name: rollout
+      taskRef:
+        kind: Task
+        name: rollout-model
+      runAfter: [register]`
+      },
+      registry: {
+        title: "RHOAI MODEL REGISTRY",
+        subtitle: "ocp-datalake-registry",
+        desc: "Instancia de Model Registry en OpenShift AI. Almacena metadatos, versiones y artefactos de modelos listos para servir.",
+        color: "#ffaa00",
+        yamlTitle: "registry/01-model-registry.yaml",
+        yaml: `apiVersion: modelregistry.opendatahub.io/v1alpha1
+kind: ModelRegistry
+metadata:
+  name: ocp-datalake-registry
+  namespace: rhoai-model-registries
+spec:
+  grpc:
+    port: 9090
+  rest:
+    port: 8080
+  mysql:
+    host: ocp-datalake-registry-db
+    port: 3306
+    database: ocp-datalake-registry
+    username: modelregistryuser
+    passwordSecret:
+      name: ocp-datalake-registry-db`
+      },
+      kserve: {
+        title: "KSERVE PREDICTOR (CHURN)",
+        subtitle: "ServingRuntime & InferenceService",
+        desc: "Runtime de inferencia predictiva para churn-score. Expone el modelo a través de KServe usando CPU, validado previamente por el pipeline.",
+        color: "#00ff88",
+        yamlTitle: "09-kserve.yaml",
+        yaml: `apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: churn-score
+  namespace: ocp-datalake
+spec:
+  multiModel: false
+  supportedModelFormats:
+    - name: mlflow
+      version: "1"
+  containers:
+    - name: kserve-container
+      image: image-registry.openshift-image-registry.svc:5000/ocp-datalake/server:latest
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: churn-score
+  namespace: ocp-datalake
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: mlflow
+      runtime: churn-score
+      storageUri: pvc://databricks-ml-registry/churn_score/1`
+      },
+      maas: {
+        title: "MODELS-AS-A-SERVICE (LLM)",
+        subtitle: "LLMInferenceService & Kuadrant",
+        desc: "Gateway unificado para modelos generativos. Expone API compatible con OpenAI (/v1/chat/completions) protegida por políticas de Kuadrant.",
+        color: "#00f0ff",
+        yamlTitle: "maas/simulator/02-llminferenceservice.yaml",
+        yaml: `apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: facebook-opt-125m-simulated
+  namespace: llm
+  labels:
+    opendatahub.io/genai-asset: "true"
+spec:
+  model:
+    uri: hf://sshleifer/tiny-gpt2
+    name: facebook/opt-125m
+  replicas: 1
+  router:
+    image: quay.io/rhoai/vllm-openai-cpu:latest
+    args:
+      - "--model=/mnt/pvc/llm-llama3"
+      - "--port=8080"`
+      },
+      gitops: {
+        title: "OPENSHIFT GITOPS (ARGO CD)",
+        subtitle: "App of Apps Sync",
+        desc: "Sincronización del estado deseado del clúster desde el repositorio Git, gestionando la infraestructura, políticas y aplicaciones.",
+        color: "#ff0055",
+        yamlTitle: "gitops/apps/ocp-datalake.yaml",
+        yaml: `apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ocp-datalake
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maximilianoPizarro/ocp-datalake.git
+    targetRevision: main
+    path: .
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ocp-datalake
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true`
+      }
+    };
+  </script>
+
+  <script>
+    // ==========================================
+    // THREE.JS SCENE, SHADERS & POST-PROCESSING
+    // ==========================================
+    const container = document.getElementById('canvas-container');
+    const labelsContainer = document.getElementById('labels-container');
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x020208, 0.014);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 24, 40);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ReinhardToneMapping;
+    renderer.toneMappingExposure = 1.35;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 + 0.02;
+    controls.minDistance = 8;
+    controls.maxDistance = 85;
+    controls.target.set(0, 3, 0);
+
+    // EffectComposer for Bloom & Glitch
+    const composer = new THREE.EffectComposer(renderer);
+    const renderPass = new THREE.RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const bloomPass = new THREE.UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      1.6,  // Bloom Strength (reduced slightly for readability)
+      0.45, // Radius
+      0.1   // Threshold
+    );
+    composer.addPass(bloomPass);
+
+    const glitchPass = new THREE.ShaderPass(THREE.DigitalGlitch);
+    glitchPass.uniforms['byp'].value = 1; // Disabled by default
+    composer.addPass(glitchPass);
+
+    // Light Rig
+    const ambientLight = new THREE.AmbientLight(0x0a1836, 2.5);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0x00f0ff, 2.0);
+    dirLight.position.set(20, 40, 20);
+    scene.add(dirLight);
+
+    const magentaLight = new THREE.PointLight(0xff007f, 6, 45);
+    magentaLight.position.set(0, 14, -10);
+    scene.add(magentaLight);
+
+    const cyanLight = new THREE.PointLight(0x00f0ff, 6, 45);
+    cyanLight.position.set(0, 3, 10);
+    scene.add(cyanLight);
+
+    // Cyberpunk Floor Grid with Pulse Shader
+    const gridHelper = new THREE.GridHelper(120, 60, 0x00f0ff, 0x072242);
+    gridHelper.position.y = -5;
+    scene.add(gridHelper);
+
+    const floorGeo = new THREE.PlaneGeometry(120, 120);
+    const floorMat = new THREE.MeshBasicMaterial({ color: 0x020612, side: THREE.DoubleSide });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = Math.PI / 2;
+    floor.position.y = -5.01;
+    scene.add(floor);
+
+    // 3D NODES MESH GENERATION
+    const nodeConfigs = {
+      databricks: { pos: { x: -16, y: 12, z: -10 }, size: [6, 2.2, 4.5], color: 0xff5500, label: "DATABRICKS" },
+      pipeline: { pos: { x: 0, y: 8, z: -4 }, size: [10, 2.8, 5.5], color: 0x9d4edd, label: "TEKTON PIPELINE" },
+      registry: { pos: { x: 14, y: 10, z: -8 }, size: [6, 2.0, 4.0], color: 0xffaa00, label: "MODEL REGISTRY" },
+      kserve: { pos: { x: -8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00ff88, label: "KSERVE PREDICTOR" },
+      maas: { pos: { x: 8, y: 2, z: 10 }, size: [6.5, 2.2, 4.5], color: 0x00f0ff, label: "MaaS GATEWAY" },
+      gitops: { pos: { x: 0, y: 20, z: 0 }, size: [8, 1.5, 8], color: 0xff0055, label: "ARGO CD GITOPS" }
+    };
+
+    const interactiveObjects = [];
+    const nodeMeshes = {};
+    const htmlLabels = [];
+
+    function createCyberNode(key, config) {
+      const group = new THREE.Group();
+      group.position.set(config.pos.x, config.pos.y, config.pos.z);
+
+      // Cyber Block Nodes
+      const geo = new THREE.BoxGeometry(config.size[0], config.size[1], config.size[2]);
+      const coreMat = new THREE.MeshPhongMaterial({
+        color: config.color,
+        emissive: config.color,
+        emissiveIntensity: 0.5,
+        transparent: true,
+        opacity: 0.85,
+        shininess: 100
+      });
+      const coreMesh = new THREE.Mesh(geo, coreMat);
+      coreMesh.userData = { key: key };
+      group.add(coreMesh);
+      interactiveObjects.push(coreMesh);
+
+      // Neon Wireframe Outlines
+      const edges = new THREE.EdgesGeometry(geo);
+      const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+      const edgeLine = new THREE.LineSegments(edges, lineMat);
+      group.add(edgeLine);
+
+      // Node Internal Light
+      const pLight = new THREE.PointLight(config.color, 3, 16);
+      group.add(pLight);
+
+      // Spinning Energy Rings
+      const ringGeo = new THREE.RingGeometry(config.size[0] * 0.65, config.size[0] * 0.8, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: config.color, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = -config.size[1] / 2 - 0.25;
+      group.add(ring);
+      group.userData.ring = ring;
+
+      scene.add(group);
+
+      // Create HTML Label
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'html-label';
+      labelDiv.innerText = config.label;
+      labelDiv.style.borderColor = '#' + config.color.toString(16).padStart(6, '0');
+      labelsContainer.appendChild(labelDiv);
+
+      htmlLabels.push({
+        element: labelDiv,
+        position: new THREE.Vector3(config.pos.x, config.pos.y + config.size[1]/2 + 2, config.pos.z)
+      });
+
+      return group;
+    }
+
+    Object.keys(nodeConfigs).forEach(key => {
+      nodeMeshes[key] = createCyberNode(key, nodeConfigs[key]);
+    });
+
+    // LASER TUBE PIPELINES
+    const connections = [
+      { from: 'databricks', to: 'pipeline', color: 0xff5500 },
+      { from: 'pipeline', to: 'registry', color: 0x9d4edd },
+      { from: 'pipeline', to: 'kserve', color: 0x00ff88 },
+      { from: 'registry', to: 'kserve', color: 0xffaa00 },
+      { from: 'registry', to: 'maas', color: 0x00f0ff },
+      { from: 'gitops', to: 'pipeline', color: 0xff0055 },
+      { from: 'gitops', to: 'registry', color: 0xff0055 },
+      { from: 'gitops', to: 'kserve', color: 0xff0055 },
+      { from: 'gitops', to: 'maas', color: 0xff0055 }
+    ];
+
+    const dataPaths = [];
+    const dataPackets = [];
+
+    connections.forEach(conn => {
+      const start = nodeConfigs[conn.from].pos;
+      const end = nodeConfigs[conn.to].pos;
+
+      const midY = (start.y + end.y) / 2 + 2.5;
+      const curve = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(start.x, start.y, start.z),
+        new THREE.Vector3((start.x + end.x) / 2, midY, (start.z + end.z) / 2),
+        new THREE.Vector3(end.x, end.y, end.z)
+      );
+
+      const tubeGeo = new THREE.TubeGeometry(curve, 40, 0.14, 8, false);
+      const tubeMat = new THREE.MeshBasicMaterial({ color: conn.color, transparent: true, opacity: 0.45, wireframe: true });
+      const tube = new THREE.Mesh(tubeGeo, tubeMat);
+      scene.add(tube);
+
+      dataPaths.push({ curve, color: conn.color });
+    });
+
+    function createDataPacket(curve, color) {
+      const geo = new THREE.SphereGeometry(0.35, 16, 16);
+      const mat = new THREE.MeshBasicMaterial({ color: color });
+      const packet = new THREE.Mesh(geo, mat);
+
+      const glowGeo = new THREE.SphereGeometry(0.7, 16, 16);
+      const glowMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.4 });
+      packet.add(new THREE.Mesh(glowGeo, glowMat));
+
+      scene.add(packet);
+
+      dataPackets.push({
+        mesh: packet,
+        curve: curve,
+        progress: Math.random(),
+        baseSpeed: 0.006 + Math.random() * 0.007,
+        speed: 0.006 + Math.random() * 0.007
+      });
+    }
+
+    dataPaths.forEach(path => {
+      for (let i = 0; i < 4; i++) {
+        createDataPacket(path.curve, path.color);
+      }
+    });
+
+    // FLOATING PARTICLES SWARM
+    const particleCount = 700;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePos = new Float32Array(particleCount * 3);
+
+    for (let i = 0; i < particleCount * 3; i += 3) {
+      particlePos[i] = (Math.random() - 0.5) * 95;
+      particlePos[i + 1] = Math.random() * 38 - 2;
+      particlePos[i + 2] = (Math.random() - 0.5) * 95;
+    }
+
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+    const particleMat = new THREE.PointsMaterial({ color: 0x00f0ff, size: 0.28, transparent: true, opacity: 0.65 });
+    const particleSystem = new THREE.Points(particleGeo, particleMat);
+    scene.add(particleSystem);
+
+  </script>
+
+  <script>
+    // ==========================================
+    // INTERACTION, RAYCASTING & LIVE TYPING YAML
+    // ==========================================
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let currentSelectedKey = 'pipeline';
+    let typingInterval = null;
+
+    // Load initial default YAML
+    window.addEventListener('load', () => {
+      displayNodeYaml('pipeline');
+      initLatencyChart();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(interactiveObjects);
+
+      if (intersects.length > 0) {
+        document.body.style.cursor = 'pointer';
+        playSynthSound('hover');
+      } else {
+        document.body.style.cursor = 'default';
+      }
+    });
+
+    window.addEventListener('click', (e) => {
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(interactiveObjects);
+      if (intersects.length > 0) {
+        const hitKey = intersects[0].object.userData.key;
+        if (hitKey && nodeManifests[hitKey]) {
+          playSynthSound('click');
+          currentSelectedKey = hitKey;
+          displayNodeYaml(hitKey);
+          triggerDataBurst();
+        }
+      }
+    });
+
+    // Dynamic Live Typing YAML Engine with Syntax Highlighting
+    function displayNodeYaml(key) {
+      const data = nodeManifests[key];
+      if (!data) return;
+
+      // Update Info Diagnostic Card
+      document.getElementById('info-title').innerText = data.title;
+      document.getElementById('info-title').style.color = data.color;
+      document.getElementById('info-subtitle').innerText = data.subtitle;
+      document.getElementById('info-desc').innerText = data.desc;
+      document.getElementById('info-id').innerText = `ID: ${key.toUpperCase()}`;
+      document.getElementById('info-card').style.borderColor = data.color;
+
+      // Terminal Header
+      document.getElementById('yaml-title').innerText = `MANIFIESTO YAML: ${data.yamlTitle}`;
+
+      const container = document.getElementById('yaml-container');
+      container.innerHTML = '';
+
+      if (typingInterval) clearInterval(typingInterval);
+
+      const fullYaml = data.yaml;
+      let charIdx = 0;
+
+      typingInterval = setInterval(() => {
+        if (charIdx < fullYaml.length) {
+          charIdx += 4; // Fast typing speed
+          const rawChunk = fullYaml.substring(0, charIdx);
+          container.innerHTML = highlightYaml(rawChunk);
+          container.scrollTop = container.scrollHeight;
+          if (Math.random() < 0.3) playSynthSound('typing');
+        } else {
+          container.innerHTML = highlightYaml(fullYaml);
+          clearInterval(typingInterval);
+        }
+      }, 15);
+    }
+
+    function highlightYaml(text) {
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/(#.*)/g, '<span class="yaml-comment">$1</span>')
+        .replace(/^(\s*)([\w\-]+)(:)/gm, '$1<span class="yaml-key">$2</span>$3')
+        .replace(/(:\s*)(".*?"|'.*?')(.*)/g, '$1<span class="yaml-str">$2</span>$3')
+        .replace(/(:\s*)(\d+\.?\d*)/g, '$1<span class="yaml-num">$2</span>')
+        .replace(/(:\s*)(true|false|Managed|ReadWriteMany)/g, '$1<span class="yaml-val">$2</span>');
+    }
+
+    function copyYamlToClipboard() {
+      const data = nodeManifests[currentSelectedKey];
+      if (!data) return;
+      playSynthSound('click');
+
+      const tempTextarea = document.createElement('textarea');
+      tempTextarea.value = data.yaml;
+      document.body.appendChild(tempTextarea);
+      tempTextarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextarea);
+
+      const status = document.getElementById('yaml-status');
+      status.innerText = '✔ COPIADO AL PORTAPAPELES';
+      status.style.color = '#00ff88';
+      setTimeout(() => {
+        status.innerText = '✔ SYNCED WITH KUBERNETES API';
+      }, 2500);
+    }
+
+    function deployManifestEffect() {
+      playSynthSound('laser');
+      triggerGlitchEffect();
+      triggerDataBurst();
+
+      const status = document.getElementById('yaml-status');
+      status.innerText = '🚀 DESPLEGANDO RECURSO EN OPENSHIFT...';
+      status.style.color = '#ff007f';
+      setTimeout(() => {
+        status.innerText = '✔ MANIFIESTO APLICADO CORRECTAMENTE';
+        status.style.color = '#00ff88';
+      }, 1800);
+    }
+
+    // CANVAS REALTIME TELEMETRY CHART
+    let chartCtx = null;
+    const chartHistory = Array(30).fill(1.2);
+
+    function initLatencyChart() {
+      const canvas = document.getElementById('latency-chart');
+      if (!canvas) return;
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+      chartCtx = canvas.getContext('2d');
+    }
+
+    function updateLatencyChart(time) {
+      if (!chartCtx) return;
+      const canvas = chartCtx.canvas;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      const newLatency = 1.1 + Math.sin(time * 3) * 0.25 + (Math.random() - 0.5) * 0.1;
+      chartHistory.push(newLatency);
+      if (chartHistory.length > 30) chartHistory.shift();
+
+      chartCtx.clearRect(0, 0, w, h);
+
+      // Grid line
+      chartCtx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+      chartCtx.lineWidth = 1;
+      chartCtx.beginPath();
+      chartCtx.moveTo(0, h / 2);
+      chartCtx.lineTo(w, h / 2);
+      chartCtx.stroke();
+
+      // Plot area
+      chartCtx.beginPath();
+      chartCtx.strokeStyle = isHyperdrive ? '#ff007f' : '#00ff88';
+      chartCtx.lineWidth = 2;
+
+      const step = w / (chartHistory.length - 1);
+      chartHistory.forEach((val, idx) => {
+        const x = idx * step;
+        const y = h - (val / 2.5) * h;
+        if (idx === 0) chartCtx.moveTo(x, y);
+        else chartCtx.lineTo(x, y);
+      });
+      chartCtx.stroke();
+
+      document.getElementById('chart-stat').innerText = `${newLatency.toFixed(2)} ms | ${Math.floor(6800 + Math.sin(time * 2) * 400).toLocaleString()} req/s`;
+      if (isHyperdrive) document.getElementById('chart-stat').innerText = `${(newLatency * 0.5).toFixed(2)} ms | ${Math.floor(18200 + Math.sin(time * 5) * 1200).toLocaleString()} req/s`;
+    }
+
+    // CAMERA CONTROLS
+    window.setCameraView = function(view) {
+      playSynthSound('click');
+      if (view === 'orbit') animateCameraTo(new THREE.Vector3(0, 24, 40), new THREE.Vector3(0, 3, 0));
+      else if (view === 'pipeline') animateCameraTo(new THREE.Vector3(0, 14, 12), new THREE.Vector3(0, 8, -4));
+      else if (view === 'predict') animateCameraTo(new THREE.Vector3(-12, 8, 22), new THREE.Vector3(-8, 2, 10));
+      else if (view === 'maas') animateCameraTo(new THREE.Vector3(12, 8, 22), new THREE.Vector3(8, 2, 10));
+    };
+
+    function animateCameraTo(targetPos, targetLookAt) {
+      const startPos = camera.position.clone();
+      const startTarget = controls.target.clone();
+      let duration = 900;
+      let startTime = performance.now();
+
+      function updateCam(now) {
+        let elapsed = now - startTime;
+        let progress = Math.min(elapsed / duration, 1);
+        let ease = 1 - Math.pow(1 - progress, 3);
+
+        camera.position.lerpVectors(startPos, targetPos, ease);
+        controls.target.lerpVectors(startTarget, targetLookAt, ease);
+        controls.update();
+
+        if (progress < 1) requestAnimationFrame(updateCam);
+      }
+      requestAnimationFrame(updateCam);
+    }
+
+    // ACTION EVENTS
+    window.triggerDataBurst = function() {
+      playSynthSound('burst');
+      dataPaths.forEach(path => {
+        for (let i = 0; i < 4; i++) {
+          createDataPacket(path.curve, 0xffffff);
+        }
+      });
+    };
+
+    window.triggerGlitchEffect = function() {
+      playSynthSound('glitch');
+      glitchPass.uniforms['byp'].value = 0;
+      setTimeout(() => {
+        glitchPass.uniforms['byp'].value = 1;
+      }, 650);
+    };
+
+    let isHyperdrive = false;
+    window.toggleHyperdrive = function() {
+      isHyperdrive = !isHyperdrive;
+      playSynthSound('hyperdrive');
+
+      const btn = document.getElementById('btn-hyperdrive');
+      const label = document.getElementById('overclock-label');
+
+      if (isHyperdrive) {
+        btn.classList.add('bg-pink-600/40', 'border-pink-400');
+        if(label) {
+          label.innerText = 'CLK: 3.0x OVERDRIVE';
+          label.className = 'text-pink-400 font-bold animate-pulse';
+        }
+        bloomPass.strength = 2.8;
+
+        dataPackets.forEach(p => p.speed = p.baseSpeed * 3.0);
+      } else {
+        btn.classList.remove('bg-pink-600/40', 'border-pink-400');
+        if(label) {
+          label.innerText = 'CLK: 1.0x';
+          label.className = 'text-amber-300 font-bold';
+        }
+        bloomPass.strength = 1.6;
+
+        dataPackets.forEach(p => p.speed = p.baseSpeed);
+      }
+    };
+
+    // Resize Handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+      initLatencyChart();
+    });
+
+    // RENDER LOOP
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const elapsedTime = clock.getElapsedTime();
+
+      // Rotate node energy rings
+      Object.keys(nodeMeshes).forEach(key => {
+        const node = nodeMeshes[key];
+        if (node.userData.ring) {
+          node.userData.ring.rotation.z = elapsedTime * (isHyperdrive ? 3.5 : 1.2);
+        }
+      });
+
+      // Hover animation
+      if (nodeMeshes.databricks) nodeMeshes.databricks.position.y = nodeConfigs.databricks.pos.y + Math.sin(elapsedTime * 1.8) * 0.35;
+      if (nodeMeshes.pipeline) nodeMeshes.pipeline.position.y = nodeConfigs.pipeline.pos.y + Math.cos(elapsedTime * 2.0) * 0.3;
+      if (nodeMeshes.registry) nodeMeshes.registry.position.y = nodeConfigs.registry.pos.y + Math.cos(elapsedTime * 2.2) * 0.3;
+      if (nodeMeshes.kserve) nodeMeshes.kserve.position.y = nodeConfigs.kserve.pos.y + Math.sin(elapsedTime * 2.4) * 0.25;
+      if (nodeMeshes.maas) nodeMeshes.maas.position.y = nodeConfigs.maas.pos.y + Math.cos(elapsedTime * 2.4) * 0.25;
+      if (nodeMeshes.gitops) nodeMeshes.gitops.position.y = nodeConfigs.gitops.pos.y + Math.sin(elapsedTime * 1.5) * 0.2;
+
+      // Update data packet movements along curves
+      dataPackets.forEach(p => {
+        p.progress += p.speed;
+        if (p.progress > 1) p.progress = 0;
+
+        const pos = p.curve.getPoint(p.progress);
+        p.mesh.position.copy(pos);
+      });
+
+      // Rotate particle cloud
+      particleSystem.rotation.y = elapsedTime * (isHyperdrive ? 0.08 : 0.02);
+
+      // Update HTML Labels positions
+      htmlLabels.forEach(lbl => {
+        const vector = lbl.position.clone();
+        vector.project(camera);
+
+        const x = (vector.x * .5 + .5) * window.innerWidth;
+        const y = (vector.y * -.5 + .5) * window.innerHeight;
+
+        if (vector.z > 1) {
+          lbl.element.classList.add('hidden');
+        } else {
+          lbl.element.classList.remove('hidden');
+          lbl.element.style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
+        }
+      });
+
+      // Update Telemetry Monitor
+      updateLatencyChart(elapsedTime);
+
+      controls.update();
+      composer.render();
+    }
+
+    // Initialize Lucide icons and start loop
+    lucide.createIcons();
+    animate();
+  </script>
+</body>
+</html>
