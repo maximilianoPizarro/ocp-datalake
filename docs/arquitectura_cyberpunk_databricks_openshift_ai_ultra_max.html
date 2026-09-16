@@ -191,13 +191,13 @@
         <!-- Web Audio Synthesizer Master Toggle -->
         <button id="btn-audio" onclick="toggleAudio()" class="cyber-btn px-3 py-1.5 flex items-center gap-2 text-cyan-300 font-bold text-xs">
           <i data-lucide="volume-2" id="audio-icon" class="w-4 h-4"></i>
-          <span id="audio-text">SYNTH: OFF</span>
+          <span id="audio-text">SYNTH: ON</span>
         </button>
 
         <!-- Ambient Drone Toggle -->
         <button id="btn-drone" onclick="toggleDrone()" class="cyber-btn px-3 py-1.5 flex items-center gap-2 text-purple-300 font-bold text-xs border-purple-500/50">
           <i data-lucide="radio" class="w-4 h-4 text-purple-400"></i>
-          <span id="drone-text">DRONE: OFF</span>
+          <span id="drone-text">DRONE: ON</span>
         </button>
       </div>
     </div>
@@ -332,10 +332,10 @@
     // PROCEDURAL WEB AUDIO SYNTHESIZER 2.0
     // ==========================================
     let audioCtx = null;
-    let audioEnabled = false;
+    let audioEnabled = true;
     let droneGain = null;
     let droneOsc = null;
-    let droneEnabled = false;
+    let droneEnabled = true;
 
     function initAudioContext() {
       if (!audioCtx) {
@@ -347,33 +347,53 @@
       }
     }
 
+    // Initialize audio on first user interaction to comply with browser autoplay policies
+    let hasInteracted = false;
+    window.addEventListener('click', () => {
+      if (!hasInteracted) {
+        hasInteracted = true;
+        initAudioContext();
+        if (droneEnabled) startClusterDrone();
+        updateAudioUI();
+      }
+    }, { once: true });
+
+    function updateAudioUI() {
+      const audioText = document.getElementById('audio-text');
+      const audioIcon = document.getElementById('audio-icon');
+      const droneText = document.getElementById('drone-text');
+
+      if (audioEnabled) {
+        audioText.innerText = 'SYNTH: ON';
+        audioIcon.setAttribute('data-lucide', 'volume-2');
+      } else {
+        audioText.innerText = 'SYNTH: OFF';
+        audioIcon.setAttribute('data-lucide', 'volume-x');
+      }
+
+      if (droneEnabled) {
+        droneText.innerText = 'DRONE: ON';
+      } else {
+        droneText.innerText = 'DRONE: OFF';
+      }
+      lucide.createIcons();
+    }
+
     function toggleAudio() {
       initAudioContext();
       audioEnabled = !audioEnabled;
-      const text = document.getElementById('audio-text');
-      const icon = document.getElementById('audio-icon');
-      
-      if (audioEnabled) {
-        text.innerText = 'SYNTH: ON';
-        icon.setAttribute('data-lucide', 'volume-2');
-        playSynthSound('click');
-      } else {
-        text.innerText = 'SYNTH: OFF';
-        icon.setAttribute('data-lucide', 'volume-x');
-      }
-      lucide.createIcons();
+      updateAudioUI();
+      if (audioEnabled) playSynthSound('click');
     }
 
     function toggleDrone() {
       initAudioContext();
       droneEnabled = !droneEnabled;
-      const text = document.getElementById('drone-text');
+      updateAudioUI();
 
       if (droneEnabled) {
-        text.innerText = 'DRONE: ON';
         startClusterDrone();
       } else {
-        text.innerText = 'DRONE: OFF';
         stopClusterDrone();
       }
     }
