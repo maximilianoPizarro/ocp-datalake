@@ -48,6 +48,7 @@
       <button type="button" data-slide="24">curl</button>
       <button type="button" data-slide="26">Observe</button>
       <button type="button" data-slide="29">GitOps</button>
+      <a href="#authpolicy">Auth path</a>
       <a href="#compat">Compat</a>
       <a href="#bridge">Bridge</a>
     </nav>
@@ -346,6 +347,15 @@
       </div>
     </div>
     <p class="hint">← → to move · F for fullscreen · click the capture to enlarge</p>
+
+    <section class="commands" id="authpolicy">
+      <h2>Models as a Service auth path</h2>
+      <p>Red Hat Connectivity Link attaches one AuthPolicy to Gateway <code>maas-default-gateway</code>. Every child HTTPRoute (<code>/maas-api</code> and the simulator) is covered. The CRD API is still <code>kuadrant.io/v1</code>; the product name is Connectivity Link. Source: <code>docs/_diagram-authpolicy.html</code>.</p>
+      <figure class="enterprise-diagram">
+        <img src="assets/diagrams/authpolicy-connectivity-link.png" alt="Connectivity Link AuthPolicy on the OpenShift AI MaaS gateway: API key or OpenShift token, HTTPRoutes, policy pipeline, maas-api and LLMInferenceService" width="1600" height="900" loading="lazy">
+        <figcaption><strong>AuthPolicy on the Gateway.</strong> Identity (sk-oai- or TokenReview), subscription metadata on maas-api, OPA authorize, then inject <code>X-MaaS-*</code> headers. Health checks skip auth.</figcaption>
+      </figure>
+    </section>
 
     <section class="commands" id="commands">
       <h2>Quick commands</h2>

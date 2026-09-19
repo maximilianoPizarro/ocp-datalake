@@ -39,7 +39,7 @@ Outside Red Hat, the intended model source is **Databricks MLflow / Unity Catalo
 
 ![Architecture: Databricks on the left; OpenShift hub with OpenShift AI, Pipelines, GitOps, Keycloak, Connectivity Link, and KServe; predictive and Models-as-a-Service spokes](docs/assets/diagrams/architecture.png)
 
-Published diagrams are the PNGs under `docs/assets/diagrams/` (`architecture.png`, `journey.png`, `bridge-enterprise.png`, `replace-enterprise.png`). Brand marks used to compose them are in `docs/assets/logos/`. Regenerate from HTML sources with `python scripts/render-diagrams.py`.
+Published diagrams are the PNGs under `docs/assets/diagrams/` (`architecture.png`, `journey.png`, `authpolicy-connectivity-link.png`, `bridge-enterprise.png`, `replace-enterprise.png`). Brand marks used to compose them are in `docs/assets/logos/`. Regenerate from HTML sources with `python scripts/render-diagrams.py`.
 
 OpenShift does not enter the Databricks workspace. In a real bridge it would receive a versioned artifact, materialize it under cluster policy, and serve it. This PoC does that for a **linear JSON stand-in**, not for a `model.pkl`. There is **one** L4: do not schedule this CPU model and a GPU workbench or vLLM endpoint on the GPU at the same time.
 
