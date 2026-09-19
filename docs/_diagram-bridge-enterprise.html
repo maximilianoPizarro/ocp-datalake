@@ -4,36 +4,35 @@
   <meta charset="utf-8">
   <title>Enterprise bridge architecture</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@500&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 1600px; height: 900px; overflow: hidden; background: #fff; }
     body {
       font-family: "Red Hat Text", sans-serif;
       color: #151515;
-      padding: 24px 36px 20px;
-      position: relative;
+      padding: 22px 36px 18px;
+      display: flex;
+      flex-direction: column;
     }
-    svg.arrows { position: absolute; inset: 0; width: 1600px; height: 900px; pointer-events: none; }
-    header {
+    header.top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
+      margin-bottom: 8px;
     }
     h1 {
       font-family: "Red Hat Display", sans-serif;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 700;
       letter-spacing: -0.02em;
-      flex: 1;
       text-align: center;
     }
     .subtitle {
       text-align: center;
-      font-size: 14px;
+      font-size: 13px;
       color: #6a6e73;
-      margin: -8px 0 14px;
+      margin-top: 2px;
     }
     .brand {
       display: flex;
@@ -46,62 +45,82 @@
       justify-content: flex-end;
     }
     .brand img { height: 26px; }
-    .canvas {
+    .plane {
       display: grid;
-      grid-template-columns: 260px 1fr;
-      gap: 28px;
-      height: 720px;
+      grid-template-columns: 248px 100px minmax(0, 1fr);
+      column-gap: 8px;
+      align-items: stretch;
+      flex: 1;
+      min-height: 0;
     }
     .zone {
-      border-radius: 16px;
-      padding: 14px 12px;
-      height: 100%;
+      border-radius: 14px;
+      padding: 12px 12px 14px;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
-    .zone.databricks {
-      border: 2px solid #b8bbbe;
-      background: #fafafa;
-    }
-    .zone.openshift {
-      border: 2px solid #8ec8f6;
-      background: #f2f9ff;
-    }
+    .zone.databricks { border: 2px solid #b8bbbe; background: #fafafa; }
+    .zone.openshift { border: 2px solid #8ec8f6; background: #f2f9ff; }
     .zone-title {
       font-family: "Red Hat Display", sans-serif;
       font-weight: 700;
       font-size: 15px;
       text-align: center;
       margin-bottom: 10px;
-      color: #151515;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-    .zone.openshift .zone-title { color: #0066cc; font-size: 17px; }
+    .zone-title img { height: 22px; }
+    .zone.openshift .zone-title { color: #0066cc; font-size: 16px; }
     .stack { display: flex; flex-direction: column; gap: 8px; flex: 1; }
     .tile {
       background: #fff;
       border: 1.5px solid #d2d2d2;
-      border-radius: 11px;
+      border-radius: 10px;
       padding: 10px 8px;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 5px;
+      justify-content: center;
+      gap: 4px;
       flex: 1;
     }
-    .tile img { height: 34px; max-width: 140px; object-fit: contain; }
+    .tile img, .tile svg.mark { height: 32px; max-width: 150px; object-fit: contain; }
+    .tile.lockup img { height: 36px; max-width: 170px; }
     .tile .name {
       font-family: "Red Hat Display", sans-serif;
       font-weight: 700;
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1.2;
     }
-    .tile .role { font-size: 10.5px; color: #6a6e73; line-height: 1.25; }
-    .layers {
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: 10px;
-      height: 100%;
+    .tile .role { font-size: 11px; color: #6a6e73; line-height: 1.25; }
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #6a6e73;
+      border: 1px solid #d2d2d2;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    .h-flow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 52px;
+      gap: 6px;
+    }
+    .h-flow span {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0066cc;
+      text-align: center;
+      line-height: 1.25;
     }
     .layer-label {
       font-family: "Red Hat Display", sans-serif;
@@ -110,34 +129,64 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: #6a6e73;
-      margin-bottom: 4px;
+      margin: 4px 0 6px;
     }
-    .grid-3 {
+    .chain {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 20px 1fr 20px 1fr;
+      align-items: stretch;
+      gap: 0;
+    }
+    .chain .tile { flex: none; min-height: 118px; }
+    .gitops-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0 2px;
+      font-size: 12px;
+      color: #6a6e73;
+    }
+    .gitops-note img { height: 22px; }
+    .chev { display: block; justify-self: center; align-self: center; }
+    .serve {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
     }
-    .grid-4 {
+    .serve .tile { min-height: 118px; flex: none; }
+    .drops {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px 8px;
+      margin-top: 4px;
+      flex: 1;
+      min-height: 0;
     }
-    .spokes {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .v-flow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .v-flow span {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6a6e73;
+      text-align: center;
     }
     .spoke {
       border: 2px solid #7cc674;
       background: #f3faf2;
       border-radius: 12px;
-      padding: 8px 10px;
+      padding: 8px 10px 10px;
     }
+    .spoke.pred { grid-column: 1; }
+    .spoke.genai { grid-column: 2; }
     .spoke h3 {
       font-family: "Red Hat Display", sans-serif;
       color: #3e8635;
       text-align: center;
-      font-size: 13px;
+      font-size: 14px;
       margin-bottom: 6px;
     }
     .pill {
@@ -146,184 +195,196 @@
       border-radius: 8px;
       padding: 5px 8px;
       text-align: center;
-      font-size: 10.5px;
+      font-size: 11px;
       margin-bottom: 5px;
       line-height: 1.25;
     }
-    .pull-banner {
-      position: absolute;
-      left: 292px;
-      top: 430px;
-      width: 56px;
-      text-align: center;
-      font-size: 9px;
-      font-weight: 600;
-      color: #0066cc;
-      line-height: 1.2;
-      z-index: 2;
-    }
     .legend {
-      position: absolute;
-      left: 36px;
-      bottom: 18px;
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin-top: 10px;
       border: 1.5px solid #b8bbbe;
       border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 11px;
-      background: #fff;
+      padding: 7px 12px;
+      font-size: 12px;
+      align-self: flex-start;
     }
-    .legend div { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
-    .sw { width: 24px; border-top: 3px solid #151515; display: inline-block; }
+    .legend span { display: flex; align-items: center; gap: 7px; }
+    .sw { width: 26px; border-top: 3px solid #151515; display: inline-block; }
     .sw.blue { border-color: #0066cc; }
     .sw.green { border-color: #3e8635; }
     .sw.red { border-color: #c9190b; }
-    .badge {
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #6a6e73;
-      border: 1px solid #d2d2d2;
-      border-radius: 4px;
-      padding: 2px 6px;
-      margin-top: 2px;
-    }
   </style>
 </head>
 <body>
-  <svg class="arrows" viewBox="0 0 1600 900" aria-hidden="true">
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute">
     <defs>
-      <marker id="ahk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <marker id="ahk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
         <path d="M0 0 L10 5 L0 10 z" fill="#151515"/>
       </marker>
-      <marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
         <path d="M0 0 L10 5 L0 10 z" fill="#0066cc"/>
       </marker>
-      <marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
         <path d="M0 0 L10 5 L0 10 z" fill="#3e8635"/>
       </marker>
-      <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
         <path d="M0 0 L10 5 L0 10 z" fill="#c9190b"/>
       </marker>
     </defs>
-    <line x1="296" y1="420" x2="332" y2="420" stroke="#0066cc" stroke-width="2.5" marker-end="url(#ahb)"/>
-    <path d="M720 620 C720 660 580 660 580 690" fill="none" stroke="#3e8635" stroke-width="2.2" marker-end="url(#ahg)"/>
-    <path d="M980 620 C980 660 1120 660 1120 690" fill="none" stroke="#c9190b" stroke-width="2.2" marker-end="url(#ahr)"/>
-    <path d="M560 340 C560 380 720 380 720 420" fill="none" stroke="#151515" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ahk)"/>
   </svg>
 
-  <header>
+  <header class="top">
     <span style="width:150px"></span>
     <div>
       <h1>Enterprise bridge — Databricks trains, OpenShift governs &amp; serves</h1>
-      <p class="subtitle">Combined scenario · OAuth M2M pull · no workspace access from the cluster</p>
+      <p class="subtitle">OAuth M2M pull · no workspace access from the cluster</p>
     </div>
     <div class="brand"><img src="assets/logos/redhat.svg" alt="">Red Hat</div>
   </header>
 
-  <div class="canvas">
-    <div class="zone databricks">
-      <div class="zone-title">Databricks cloud plane</div>
+  <div class="plane">
+    <aside class="zone databricks">
+      <div class="zone-title">
+        <img src="assets/logos/databricks.svg" alt="">
+        Databricks cloud plane
+      </div>
       <div class="stack">
         <div class="tile">
-          <img src="assets/logos/databricks.svg" alt="Databricks">
-          <div class="name">Notebooks &amp; Jobs</div>
-          <div class="role">Training · feature engineering · batch scoring</div>
-        </div>
-        <div class="tile">
-          <img src="assets/logos/databricks.svg" alt="Unity Catalog">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="5" y="8" width="22" height="16" rx="2" fill="none" stroke="#151515" stroke-width="1.8"/>
+            <path d="M5 13h22M13 8v16" stroke="#151515" stroke-width="1.8"/>
+          </svg>
           <div class="name">Unity Catalog</div>
           <div class="role">models:/catalog.schema.churn_score/1<br>grants · lineage · governance</div>
         </div>
         <div class="tile">
-          <img src="assets/logos/mlflow.svg" alt="MLflow">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M8 12h16v12H8z" fill="none" stroke="#151515" stroke-width="1.8"/>
+            <path d="M8 12l8-5 8 5" fill="none" stroke="#151515" stroke-width="1.8"/>
+          </svg>
           <div class="name">MLflow artifacts</div>
           <div class="role">MLmodel + model.pkl / ONNX<br>S3 artifact store</div>
         </div>
         <div class="tile">
-          <img src="assets/logos/keycloak-official.svg" alt="OAuth">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="9" y="14" width="14" height="12" rx="2" fill="none" stroke="#151515" stroke-width="1.8"/>
+            <path d="M12 14v-3a4 4 0 0 1 8 0v3" fill="none" stroke="#151515" stroke-width="1.8"/>
+          </svg>
           <div class="name">Service principal</div>
-          <div class="role">OAuth M2M (not PAT in git)<br>External Secrets → Tekton</div>
+          <div class="role">OAuth M2M (not a PAT in git)<br>External Secrets → Tekton</div>
           <span class="badge">Databricks IdP</span>
         </div>
+        <div class="tile">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="6" y="5" width="20" height="22" rx="2" fill="none" stroke="#151515" stroke-width="1.8"/>
+            <path d="M10 11h12M10 16h12M10 21h8" stroke="#151515" stroke-width="1.8"/>
+          </svg>
+          <div class="name">Notebooks &amp; Jobs</div>
+          <div class="role">Training stays here<br>not pulled by the cluster</div>
+        </div>
       </div>
+    </aside>
+
+    <div class="h-flow">
+      <span>OAuth M2M<br>artifact pull</span>
+      <svg width="88" height="18" viewBox="0 0 88 18" aria-hidden="true">
+        <line x1="2" y1="9" x2="76" y2="9" stroke="#0066cc" stroke-width="2.6" marker-end="url(#ahb)"/>
+      </svg>
+      <span style="color:#6a6e73;font-weight:500">egress allowed<br>no workspace login</span>
     </div>
 
-    <div class="zone openshift">
+    <section class="zone openshift">
       <div class="zone-title">Red Hat OpenShift 4.20 · OpenShift AI 3.5</div>
-      <div class="layers">
-        <div>
-          <div class="layer-label">Pull &amp; store</div>
-          <div class="grid-4">
-            <div class="tile">
-              <img src="assets/logos/tekton.svg" alt="Pipelines">
-              <div class="name">databricks-pull</div>
-              <div class="role">Tekton + KFP<br>validate → register → rollout</div>
-            </div>
-            <div class="tile">
-              <img src="assets/logos/odf.svg" alt="ODF">
-              <div class="name">ODF NooBaa S3</div>
-              <div class="role">ObjectBucketClaim<br>scripts/s3_model.py</div>
-            </div>
-            <div class="tile">
-              <img src="assets/logos/openshift-ai.svg" alt="Registry">
-              <div class="name">Model Registry</div>
-              <div class="role">ocp-datalake-registry<br>UC source URI metadata</div>
-            </div>
-            <div class="tile">
-              <img src="assets/logos/argo-cd.svg" alt="GitOps">
-              <div class="name">OpenShift GitOps</div>
-              <div class="role">Argo CD app-of-apps<br>desired state sync</div>
-            </div>
-          </div>
-        </div>
 
-        <div>
-          <div class="layer-label">Govern &amp; serve</div>
-          <div class="grid-3">
-            <div class="tile">
-              <img src="assets/logos/kserve.svg" alt="KServe">
-              <div class="name">KServe + MLServer</div>
-              <div class="role">churn-score InferenceService<br>mlserver-mlflow runtime</div>
-            </div>
-            <div class="tile">
-              <img src="assets/logos/kuadrant.svg" alt="MaaS">
-              <div class="name">Models-as-a-Service</div>
-              <div class="role">Connectivity Link · Kuadrant<br>LLMInferenceService + Gateway</div>
-            </div>
-            <div class="tile">
-              <img src="assets/logos/keycloak-official.svg" alt="RHBK">
-              <div class="name">RHBK + OAuth</div>
-              <div class="role">Cluster IdP · Route oauth-proxy<br>sk-oai- API keys (MaaS)</div>
-            </div>
-          </div>
+      <div class="layer-label">Pull &amp; store</div>
+      <div class="chain">
+        <div class="tile">
+          <img src="assets/logos/tekton.svg" alt="Tekton">
+          <div class="name">databricks-pull</div>
+          <div class="role">Tekton + KFP<br>validate → register → rollout</div>
         </div>
-
-        <div class="spokes">
-          <div class="spoke">
-            <h3>Predictive consumer path</h3>
-            <div class="pill">POST /predict · JSON contract</div>
-            <div class="pill">CPU churn-score · no GPU</div>
-            <div class="pill">Consumer never talks to Databricks</div>
-          </div>
-          <div class="spoke">
-            <h3>GenAI consumer path</h3>
-            <div class="pill">/v1/chat/completions</div>
-            <div class="pill">maas.&lt;apps-domain&gt; Gateway</div>
-            <div class="pill">L4 GPU on Llama KServe (separate)</div>
-          </div>
+        <svg class="chev" width="20" height="40" viewBox="0 0 20 40" aria-hidden="true">
+          <path d="M3 10 L16 20 L3 30" fill="none" stroke="#151515" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="tile">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <ellipse cx="16" cy="8" rx="10" ry="3.5" fill="none" stroke="#c9190b" stroke-width="1.8"/>
+            <path d="M6 8v6c0 2 4.5 3.5 10 3.5s10-1.5 10-3.5V8" fill="none" stroke="#c9190b" stroke-width="1.8"/>
+            <path d="M6 14v6c0 2 4.5 3.5 10 3.5s10-1.5 10-3.5v-6" fill="none" stroke="#c9190b" stroke-width="1.8"/>
+          </svg>
+          <div class="name">ODF NooBaa S3</div>
+          <div class="role">ObjectBucketClaim<br>scripts/s3_model.py</div>
+        </div>
+        <svg class="chev" width="20" height="40" viewBox="0 0 20 40" aria-hidden="true">
+          <path d="M3 10 L16 20 L3 30" fill="none" stroke="#151515" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="tile lockup">
+          <img src="assets/logos/openshift-ai.svg" alt="Red Hat OpenShift AI">
+          <div class="name">Model Registry</div>
+          <div class="role">ocp-datalake-registry<br>UC source URI metadata</div>
         </div>
       </div>
-    </div>
+      <p class="gitops-note">
+        <img src="assets/logos/argo-cd.svg" alt="">
+        OpenShift GitOps syncs desired state from git — it is not on the artifact path.
+      </p>
+
+      <div class="layer-label">Govern &amp; serve</div>
+      <div class="serve">
+        <div class="tile">
+          <img src="assets/logos/kserve.svg" alt="KServe">
+          <div class="name">KServe + MLServer</div>
+          <div class="role">churn-score InferenceService<br>mlserver-mlflow runtime</div>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/kuadrant.svg" alt="Connectivity Link">
+          <div class="name">Red Hat Connectivity Link</div>
+          <div class="role">Gateway + AuthPolicy<br>LLMInferenceService</div>
+        </div>
+        <div class="tile">
+          <img src="assets/logos/keycloak.svg" alt="Keycloak">
+          <div class="name">Red Hat build of Keycloak</div>
+          <div class="role">Cluster IdP · oauth-proxy<br>sk-oai- API keys (MaaS)</div>
+        </div>
+      </div>
+
+      <div class="drops">
+        <div class="v-flow">
+          <span>from KServe</span>
+          <svg width="24" height="36" viewBox="0 0 24 36" aria-hidden="true">
+            <line x1="12" y1="2" x2="12" y2="26" stroke="#3e8635" stroke-width="2.6" marker-end="url(#ahg)"/>
+          </svg>
+        </div>
+        <div class="v-flow">
+          <span>from Connectivity Link</span>
+          <svg width="24" height="36" viewBox="0 0 24 36" aria-hidden="true">
+            <line x1="12" y1="2" x2="12" y2="26" stroke="#c9190b" stroke-width="2.6" marker-end="url(#ahr)"/>
+          </svg>
+        </div>
+        <div></div>
+        <div class="spoke pred">
+          <h3>Predictive consumer path</h3>
+          <div class="pill">POST /predict · JSON contract</div>
+          <div class="pill">CPU churn-score · no GPU</div>
+          <div class="pill">Consumer never talks to Databricks</div>
+        </div>
+        <div class="spoke genai">
+          <h3>GenAI consumer path</h3>
+          <div class="pill">/v1/chat/completions</div>
+          <div class="pill">maas.&lt;apps-domain&gt; Gateway</div>
+          <div class="pill">L4 GPU on Llama KServe (separate)</div>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <div class="pull-banner">OAuth M2M<br>artifact<br>pull</div>
-
   <div class="legend">
-    <div><span class="sw blue"></span> UC artifact pull (egress allowed)</div>
-    <div><span class="sw"></span> Promotion &amp; registry</div>
-    <div><span class="sw green"></span> Predictive inference</div>
-    <div><span class="sw red"></span> MaaS inference traffic</div>
+    <span><i class="sw blue"></i> OAuth M2M artifact pull</span>
+    <span><i class="sw"></i> Promotion on cluster (pull → ODF → registry)</span>
+    <span><i class="sw green"></i> Predictive inference</span>
+    <span><i class="sw red"></i> MaaS inference</span>
   </div>
 </body>
 </html>

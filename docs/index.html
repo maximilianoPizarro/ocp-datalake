@@ -57,7 +57,7 @@
       <div class="journey-viewport">
 
         <figure class="journey-slide is-active">
-          <img class="is-diagram" src="assets/diagrams/architecture.png" alt="Databricks outside the cluster, OpenShift AI hub, predictive and Models-as-a-Service spokes" width="1600" height="900">
+          <img class="is-diagram" src="assets/diagrams/architecture.png" alt="Databricks outside the cluster connected to the OpenShift AI hub, then Predictive path and Models-as-a-Service" width="1600" height="900" fetchpriority="high">
           <figcaption>
             <span class="slide-num">Step 01</span>
             <strong>The plane</strong>
@@ -66,7 +66,7 @@
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img class="is-diagram" src="assets/diagrams/journey.png" alt="Predictive churn-score path and Models-as-a-Service LLM path on one OpenShift cluster" width="1600" height="900">
+          <img class="is-diagram" src="assets/diagrams/journey.png" alt="Predictive path Databricks to /predict and MaaS path Gen AI studio to /v1/chat/completions" width="1600" height="900">
           <figcaption>
             <span class="slide-num">Step 02</span>
             <strong>Two paths</strong>
@@ -346,13 +346,13 @@
         <span class="journey-status" id="journey-status" aria-live="polite">1 / 31</span>
       </div>
     </div>
-    <p class="hint">← → to move · F for fullscreen · click the capture to enlarge</p>
+    <p class="hint">← → to move · F for fullscreen · click a capture or diagram to enlarge</p>
 
     <section class="commands" id="authpolicy">
       <h2>Models as a Service auth path</h2>
       <p>Red Hat Connectivity Link attaches one AuthPolicy to Gateway <code>maas-default-gateway</code>. Every child HTTPRoute (<code>/maas-api</code> and the simulator) is covered. The CRD API is still <code>kuadrant.io/v1</code>; the product name is Connectivity Link. Source: <code>docs/_diagram-authpolicy.html</code>.</p>
       <figure class="enterprise-diagram">
-        <img src="assets/diagrams/authpolicy-connectivity-link.png" alt="Connectivity Link AuthPolicy on the OpenShift AI MaaS gateway: API key or OpenShift token, HTTPRoutes, policy pipeline, maas-api and LLMInferenceService" width="1600" height="900" loading="lazy">
+        <img src="assets/diagrams/authpolicy-connectivity-link.png" alt="AuthPolicy on Gateway maas-default-gateway covering HTTPRoutes, policy pipeline, and backends" width="1600" height="900" loading="lazy" data-zoom>
         <figcaption><strong>AuthPolicy on the Gateway.</strong> Identity (sk-oai- or TokenReview), subscription metadata on maas-api, OPA authorize, then inject <code>X-MaaS-*</code> headers. Health checks skip auth.</figcaption>
       </figure>
     </section>
@@ -446,11 +446,11 @@ curl -sk "$MAAS_URL/v1/chat/completions" \
       <h3>Enterprise architecture views</h3>
       <p>PatternFly-style reference diagrams with official Red Hat product marks and community equivalents. Source: <code>docs/_diagram-bridge-enterprise.html</code>, <code>docs/_diagram-replace-enterprise.html</code> (render with <code>python scripts/render-diagrams.py</code>).</p>
       <figure class="enterprise-diagram">
-        <img src="assets/diagrams/bridge-enterprise.png" alt="Enterprise bridge: Databricks cloud plane on the left, OpenShift pull store govern serve on the right, predictive and GenAI consumer paths below" width="1600" height="900" loading="lazy">
+        <img src="assets/diagrams/bridge-enterprise.png" alt="Enterprise bridge: Databricks plane left, OpenShift pull store govern serve right" width="1600" height="900" loading="lazy" data-zoom>
         <figcaption><strong>Combined (bridge).</strong> Databricks trains and catalogs; OpenShift pulls via OAuth M2M, stores on ODF, registers, and serves under cluster policy.</figcaption>
       </figure>
       <figure class="enterprise-diagram">
-        <img src="assets/diagrams/replace-enterprise.png" alt="Full replacement: develop, train, lakehouse, and serve layers entirely on OpenShift with Red Hat and community products" width="1600" height="900" loading="lazy">
+        <img src="assets/diagrams/replace-enterprise.png" alt="Full replacement stack on OpenShift: develop, train, lakehouse, and serve" width="1600" height="900" loading="lazy" data-zoom>
         <figcaption><strong>Full replacement.</strong> No Databricks dependency — RHOAI, ODF, Pipelines, and GitOps plus Feast, Iceberg, Trino, and self-hosted MLflow. Unity Catalog and managed Spark are not replicated.</figcaption>
       </figure>
       <p><strong>Bridge vs replace:</strong> <em>Bridge</em> — Databricks trains and registers; OpenShift pulls, governs, and serves (this document). <em>Replace</em> — RHOAI + ODF + Pipelines + Feast/Iceberg on OpenShift; you lose UC and the managed Spark runtime. This PoC demonstrates the bridge story.</p>

@@ -391,6 +391,40 @@ table.mapping td:first-child { font-family: var(--rh-font-display); font-weight:
   display: block;
   width: 100%;
   height: auto;
+  cursor: zoom-in;
+}
+.img-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(21, 21, 21, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.img-zoom[hidden] { display: none; }
+.img-zoom img {
+  max-width: 96vw;
+  max-height: 90vh;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 8px;
+}
+.img-zoom-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  appearance: none;
+  border: 1px solid #fff;
+  background: transparent;
+  color: #fff;
+  font-family: var(--rh-font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
 }
 .enterprise-diagram figcaption {
   padding: 0.65rem 0.85rem;

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>ocp-datalake flows</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@500&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 1600px; height: 900px; overflow: hidden; background: #fff; }
@@ -17,11 +17,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 22px;
+      margin-bottom: 28px;
     }
     h1 {
       font-family: "Red Hat Display", sans-serif;
-      font-size: 30px;
+      font-size: 28px;
       font-weight: 700;
       letter-spacing: -0.02em;
       flex: 1;
@@ -33,21 +33,21 @@
       gap: 8px;
       font-family: "Red Hat Display", sans-serif;
       font-weight: 700;
-      font-size: 22px;
-      width: 160px;
+      font-size: 20px;
+      width: 150px;
       justify-content: flex-end;
     }
-    .brand img { height: 28px; }
+    .brand img { height: 26px; }
     .row {
       display: grid;
-      grid-template-columns: 186px repeat(5, minmax(0, 1fr));
-      gap: 12px;
+      grid-template-columns: 168px minmax(0, 1fr);
+      gap: 14px;
       align-items: stretch;
-      margin-bottom: 28px;
+      margin-bottom: 22px;
     }
     .lane {
       background: #e7f1fa;
-      border-radius: 14px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -59,20 +59,27 @@
       color: #002952;
       line-height: 1.25;
     }
+    .steps {
+      display: grid;
+      grid-template-columns: 1fr 22px 1fr 22px 1fr 22px 1fr 22px 1fr;
+      align-items: center;
+      min-height: 220px;
+    }
     .card {
       background: #fff;
       border: 1.5px solid #d2d2d2;
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 14px 8px;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 7px;
-      min-height: 188px;
+      gap: 6px;
+      min-height: 200px;
     }
-    .card img { height: 42px; max-width: 140px; object-fit: contain; }
+    .card img { height: 40px; max-width: 150px; object-fit: contain; }
+    .card.lockup img { height: 44px; max-width: 180px; }
     .card .name {
       font-family: "Red Hat Display", sans-serif;
       font-weight: 700;
@@ -80,12 +87,18 @@
       line-height: 1.25;
     }
     .card .role { font-size: 12px; color: #6a6e73; line-height: 1.3; }
+    .card .mono {
+      font-family: "Red Hat Mono", ui-monospace, monospace;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .chev { display: block; justify-self: center; }
     .note {
       text-align: center;
       font-family: "Red Hat Display", sans-serif;
       font-weight: 600;
       font-size: 15px;
-      margin: 4px 0 18px;
+      margin: 8px 0 16px;
     }
     .legend {
       display: inline-flex;
@@ -102,66 +115,95 @@
 </head>
 <body>
   <header>
-    <span style="width:160px"></span>
+    <span style="width:150px"></span>
     <h1>Two governed paths on one cluster</h1>
     <div class="brand"><img src="assets/logos/redhat.svg" alt="">Red Hat</div>
   </header>
 
   <div class="row">
     <div class="lane">Predictive<br>(churn-score)</div>
-    <div class="card">
-      <img src="assets/logos/databricks.svg" alt="Databricks">
-      <div class="name">Databricks</div>
-      <div class="role">simulated PVC + model.json<br>(not an MLflow bundle)</div>
-    </div>
-    <div class="card">
-      <img src="assets/logos/tekton.svg" alt="Tekton">
-      <div class="name">OpenShift Pipelines</div>
-      <div class="role">seed → validate → register → rollout</div>
-    </div>
-    <div class="card">
-      <img src="assets/logos/openshift-ai.svg" alt="OpenShift AI">
-      <div class="name">Model Registry</div>
-      <div class="role">ocp-datalake-registry</div>
-    </div>
-    <div class="card">
-      <img src="assets/logos/kserve.svg" alt="KServe">
-      <div class="name">KServe</div>
-      <div class="role">InferenceService churn-score<br>CPU, 1 replica</div>
-    </div>
-    <div class="card">
-      <img src="assets/logos/openshift.svg" alt="OpenShift">
-      <div class="name">Route /predict</div>
-      <div class="role">JSON consumer<br>never talks to Databricks</div>
+    <div class="steps">
+      <div class="card">
+        <img src="assets/logos/databricks.svg" alt="Databricks">
+        <div class="name">Databricks</div>
+        <div class="role">simulated PVC + model.json<br>(not an MLflow bundle)</div>
+      </div>
+      <svg class="chev" width="22" height="48" viewBox="0 0 22 48" aria-hidden="true">
+        <path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="card">
+        <img src="assets/logos/tekton.svg" alt="Tekton">
+        <div class="name">OpenShift Pipelines</div>
+        <div class="role">seed → validate → register → rollout</div>
+      </div>
+      <svg class="chev" width="22" height="48" viewBox="0 0 22 48" aria-hidden="true">
+        <path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="card">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="7" y="10" width="26" height="20" rx="3" fill="none" stroke="#151515" stroke-width="2"/>
+          <path d="M7 16h26M20 16v14" stroke="#151515" stroke-width="2"/>
+        </svg>
+        <div class="name">Model Registry</div>
+        <div class="role">ocp-datalake-registry</div>
+      </div>
+      <svg class="chev" width="22" height="48" viewBox="0 0 22 48" aria-hidden="true">
+        <path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="card">
+        <img src="assets/logos/kserve.svg" alt="KServe">
+        <div class="name">KServe</div>
+        <div class="role">InferenceService churn-score<br>CPU, 1 replica</div>
+      </div>
+      <svg class="chev" width="22" height="48" viewBox="0 0 22 48" aria-hidden="true">
+        <path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="card">
+        <img src="assets/logos/openshift.svg" alt="OpenShift">
+        <div class="name">Route /predict</div>
+        <div class="role">JSON consumer<br>never talks to Databricks</div>
+      </div>
     </div>
   </div>
 
   <div class="row">
     <div class="lane">Models-as-a-Service<br>(LLM)</div>
-    <div class="card">
-      <img src="assets/logos/openshift-ai.svg" alt="OpenShift AI">
-      <div class="name">Gen AI studio</div>
-      <div class="role">AI asset endpoints</div>
-    </div>
-    <div class="card">
-      <img src="assets/logos/kserve.svg" alt="KServe">
-      <div class="name">LLMInferenceService</div>
-      <div class="role">facebook/opt-125m simulator<br>CPU only</div>
-    </div>
-    <div class="card">
-      <img src="assets/logos/kuadrant.svg" alt="Kuadrant">
-      <div class="name">Connectivity Link</div>
-      <div class="role">Kuadrant Gateway + AuthPolicy</div>
-    </div>
-    <div class="card">
-      <img src="assets/logos/keycloak-official.svg" alt="Keycloak">
-      <div class="name">API keys</div>
-      <div class="role">sk-oai- minted in the dashboard</div>
-    </div>
-    <div class="card">
-      <img src="assets/logos/openshift.svg" alt="OpenShift">
-      <div class="name">/v1/chat/completions</div>
-      <div class="role">OpenAI-compatible<br>maas.&lt;apps-domain&gt;</div>
+    <div class="steps">
+      <div class="card lockup">
+        <img src="assets/logos/openshift-ai.svg" alt="Red Hat OpenShift AI">
+        <div class="name">Gen AI studio</div>
+        <div class="role">AI asset endpoints</div>
+      </div>
+      <svg class="chev" width="22" height="48" viewBox="0 0 22 48" aria-hidden="true">
+        <path d="M4 10 L18 24 L4 38" fill="none" stroke="#c9190b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="card">
+        <div class="name">LLMInferenceService</div>
+        <div class="role">facebook/opt-125m simulator<br>CPU only</div>
+      </div>
+      <svg class="chev" width="22" height="48" viewBox="0 0 22 48" aria-hidden="true">
+        <path d="M4 10 L18 24 L4 38" fill="none" stroke="#c9190b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="card">
+        <img src="assets/logos/kuadrant.svg" alt="Connectivity Link">
+        <div class="name">Red Hat Connectivity Link</div>
+        <div class="role">Gateway + AuthPolicy</div>
+      </div>
+      <svg class="chev" width="22" height="48" viewBox="0 0 22 48" aria-hidden="true">
+        <path d="M4 10 L18 24 L4 38" fill="none" stroke="#c9190b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="card">
+        <img src="assets/logos/keycloak.svg" alt="Keycloak">
+        <div class="name">API keys</div>
+        <div class="role">sk-oai- minted in the dashboard</div>
+      </div>
+      <svg class="chev" width="22" height="48" viewBox="0 0 22 48" aria-hidden="true">
+        <path d="M4 10 L18 24 L4 38" fill="none" stroke="#c9190b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="card">
+        <div class="name mono">/v1/chat/completions</div>
+        <div class="role">OpenAI-compatible<br>maas.&lt;apps-domain&gt;</div>
+      </div>
     </div>
   </div>
 

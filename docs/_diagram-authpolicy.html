@@ -27,13 +27,13 @@
       gap: 22px;
       flex: 1;
     }
+    .logos > img { height: 42px; width: auto; max-width: 220px; object-fit: contain; }
     .logo-lockup {
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .logo-lockup img.hat { height: 28px; width: auto; }
-    .logo-lockup img.product { height: 42px; width: auto; max-width: 220px; object-fit: contain; }
+    .logo-lockup img.kmark { height: 28px; width: auto; }
     .logo-lockup .stack { display: flex; flex-direction: column; line-height: 1.05; }
     .logo-lockup .stack .rh {
       font-family: "Red Hat Display", sans-serif;
@@ -55,8 +55,14 @@
     .titles p { color: #6a6e73; font-size: 13px; margin-top: 2px; }
     .cols {
       display: grid;
-      grid-template-columns: 250px 420px 430px 380px;
-      gap: 16px;
+      grid-template-columns: 238px 18px 400px 18px 410px 18px 360px;
+      gap: 8px;
+      align-items: start;
+    }
+    .col-chev {
+      align-self: center;
+      justify-self: center;
+      margin-top: 120px;
     }
     .col h2 {
       font-family: "Red Hat Display", sans-serif;
@@ -170,17 +176,10 @@
 <body>
   <header>
     <div class="logos">
+      <img src="assets/logos/openshift-official.svg" alt="Red Hat OpenShift">
+      <img src="assets/logos/openshift-ai.svg" alt="Red Hat OpenShift AI">
       <div class="logo-lockup">
-        <img class="hat" src="assets/logos/redhat.svg" alt="Red Hat">
-      </div>
-      <div class="logo-lockup">
-        <img class="product" src="assets/logos/openshift-official.svg" alt="Red Hat OpenShift">
-      </div>
-      <div class="logo-lockup">
-        <img class="product" src="assets/logos/openshift-ai.svg" alt="Red Hat OpenShift AI">
-      </div>
-      <div class="logo-lockup">
-        <img class="hat" src="assets/logos/redhat.svg" alt="">
+        <img class="kmark" src="assets/logos/kuadrant.svg" alt="">
         <div class="stack">
           <span class="rh">Red Hat</span>
           <span class="prod">Connectivity Link</span>
@@ -206,7 +205,9 @@
         <div class="meta">kubernetesTokenReview · audience kubernetes.default.svc · priority 2 when the header is not sk-oai-</div>
       </div>
     </div>
-
+    <svg class="col-chev" width="18" height="48" viewBox="0 0 18 48" aria-hidden="true">
+      <path d="M2 10 L16 24 L2 38" fill="none" stroke="#151515" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
     <div class="col">
       <h2>2. Gateway API · openshift-ingress</h2>
       <div class="gateway">
@@ -228,7 +229,9 @@
         </div>
       </div>
     </div>
-
+    <svg class="col-chev" width="18" height="48" viewBox="0 0 18 48" aria-hidden="true">
+      <path d="M2 10 L16 24 L2 38" fill="none" stroke="#151515" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
     <div class="col">
       <h2>3. Policy pipeline</h2>
       <div class="step"><span class="num">1</span><div><strong>Authenticate</strong><div class="meta">api-keys or TokenReview</div></div></div>
@@ -238,7 +241,9 @@
       <div class="step"><span class="num">5</span><div><strong>Inject response headers</strong><div class="meta">X-MaaS-Username · X-MaaS-Group · X-MaaS-Subscription</div></div></div>
       <p class="skip">Skipped: GET /maas-api/health</p>
     </div>
-
+    <svg class="col-chev" width="18" height="48" viewBox="0 0 18 48" aria-hidden="true">
+      <path d="M2 10 L16 24 L2 38" fill="none" stroke="#151515" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
     <div class="col">
       <h2>4. Backends</h2>
       <div class="backend">

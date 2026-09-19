@@ -134,7 +134,9 @@
     if (Math.abs(dx) > 40) go(dx < 0 ? index + 1 : index - 1, true);
   }, { passive: true });
 
-  root.querySelectorAll(".journey-slide img").forEach(function (img) {
+  root.querySelectorAll(".journey-slide img").forEach(function (img, i) {
+    if (i > 0) img.setAttribute("loading", "lazy");
+    img.setAttribute("decoding", "async");
     img.addEventListener("click", function () {
       if (!fsOpen) setFullscreen(true);
     });
@@ -153,4 +155,52 @@
   restart();
   applyHash();
   root.focus({ preventScroll: true });
+})();
+
+(function () {
+  var imgs = document.querySelectorAll("[data-zoom]");
+  if (!imgs.length) return;
+  var overlay = document.createElement("div");
+  overlay.className = "img-zoom";
+  overlay.hidden = true;
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", "Enlarged diagram");
+  overlay.innerHTML = '<button type="button" class="img-zoom-close">Close</button><img alt="">';
+  document.body.appendChild(overlay);
+  var big = overlay.querySelector("img");
+  var closeBtn = overlay.querySelector(".img-zoom-close");
+
+  function close() {
+    overlay.hidden = true;
+    document.body.style.overflow = "";
+    big.removeAttribute("src");
+  }
+  function open(img) {
+    big.src = img.currentSrc || img.src;
+    big.alt = img.alt || "";
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+    closeBtn.focus();
+  }
+
+  imgs.forEach(function (img) {
+    img.addEventListener("click", function () { open(img); });
+    img.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        open(img);
+      }
+    });
+    img.setAttribute("tabindex", "0");
+    img.setAttribute("role", "button");
+    img.setAttribute("aria-label", (img.alt || "Diagram") + " (enlarge)");
+  });
+  closeBtn.addEventListener("click", close);
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) close();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !overlay.hidden) close();
+  });
 })();
