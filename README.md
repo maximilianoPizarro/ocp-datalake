@@ -124,7 +124,7 @@ bash scripts/enable-gitops.sh
 bash scripts/enable-maas.sh
 ```
 
-`oc apply -k manifests/maas/platform` is what Argo syncs. Edit `gateway.yaml` / `route.yaml` host and TLS secret when the ingress domain is not this OpenTLC sandbox (`*.apps.ocp.bt58s.sandbox2518.opentlc.com`, cert `cert-manager-ingress-cert`).
+`oc apply -k manifests/maas/platform` is what Argo syncs. `scripts/enable-maas.sh` always rebinds Gateway/Route `maas` to `maas.<apps-domain>` from the live cluster (OpenTLC hostnames rotate). The committed `gateway.yaml` / `route.yaml` are the last known sandbox (`*.apps.ocp.ljtfk.sandbox5295.opentlc.com`, cert `cert-manager-ingress-cert`).
 
 
 Call the OpenAI-compatible API (body-based routing). Do not commit the `sk-oai-` key.

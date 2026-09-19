@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Connectivity Link AuthPolicy on OpenShift AI MaaS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 1600px; height: 900px; overflow: hidden; background: #fff; }
+    body {
+      font-family: "Red Hat Text", sans-serif;
+      color: #151515;
+      padding: 22px 36px 18px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      border-bottom: 3px solid #ee0000;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+    .logos {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      flex: 1;
+    }
+    .logo-lockup {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-lockup img.hat { height: 28px; width: auto; }
+    .logo-lockup img.product { height: 42px; width: auto; max-width: 220px; object-fit: contain; }
+    .logo-lockup .stack { display: flex; flex-direction: column; line-height: 1.05; }
+    .logo-lockup .stack .rh {
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .logo-lockup .stack .prod {
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 500;
+      font-size: 15px;
+    }
+    .titles { text-align: right; }
+    .titles h1 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .titles p { color: #6a6e73; font-size: 13px; margin-top: 2px; }
+    .cols {
+      display: grid;
+      grid-template-columns: 250px 420px 430px 380px;
+      gap: 16px;
+    }
+    .col h2 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #6a6e73;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .card {
+      border: 1.5px solid #d2d2d2;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      margin-bottom: 8px;
+    }
+    .card strong {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 14px;
+      display: block;
+    }
+    .card .meta { color: #6a6e73; font-size: 12px; margin-top: 3px; line-height: 1.35; }
+    .mono { font-family: "Red Hat Mono", ui-monospace, Consolas, monospace; font-size: 11px; color: #3d3d3d; }
+    .gateway {
+      border: 2px solid #0066cc;
+      background: #f2f9ff;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 620px;
+    }
+    .gateway h3 {
+      font-family: "Red Hat Display", sans-serif;
+      color: #0066cc;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .policy {
+      border: 2px solid #c9190b;
+      background: #fafafa;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
+    .policy strong { color: #c9190b; }
+    .pills { display: flex; gap: 8px; margin-top: 8px; }
+    .pill {
+      background: #f3faf2;
+      border: 1px solid #7cc674;
+      color: #3e8635;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+    }
+    .step {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      border: 1.5px solid #d2d2d2;
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 7px;
+      background: #fff;
+    }
+    .num {
+      flex: 0 0 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #0066cc;
+      color: #fff;
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step strong { font-size: 13px; }
+    .skip {
+      font-size: 12px;
+      color: #6a6e73;
+      margin-top: 4px;
+    }
+    .backend {
+      border: 2px solid #3e8635;
+      background: #f3faf2;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 300px;
+      margin-bottom: 12px;
+    }
+    .backend h3 {
+      font-family: "Red Hat Display", sans-serif;
+      color: #3e8635;
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+    footer.note {
+      margin-top: 10px;
+      border: 1.5px solid #d2d2d2;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #151515;
+      background: #f5f5f5;
+    }
+    footer.note strong { font-family: "Red Hat Display", sans-serif; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logos">
+      <div class="logo-lockup">
+        <img class="hat" src="assets/logos/redhat.svg" alt="Red Hat">
+      </div>
+      <div class="logo-lockup">
+        <img class="product" src="assets/logos/openshift-official.svg" alt="Red Hat OpenShift">
+      </div>
+      <div class="logo-lockup">
+        <img class="product" src="assets/logos/openshift-ai.svg" alt="Red Hat OpenShift AI">
+      </div>
+      <div class="logo-lockup">
+        <img class="hat" src="assets/logos/redhat.svg" alt="">
+        <div class="stack">
+          <span class="rh">Red Hat</span>
+          <span class="prod">Connectivity Link</span>
+        </div>
+      </div>
+    </div>
+    <div class="titles">
+      <h1>Models as a Service auth path</h1>
+      <p>AuthPolicy maas-gateway-auth attaches to Gateway maas-default-gateway</p>
+    </div>
+  </header>
+
+  <div class="cols">
+    <div class="col">
+      <h2>1. Client</h2>
+      <div class="card">
+        <strong>API key</strong>
+        <div class="mono">Bearer sk-oai-…</div>
+        <div class="meta">priority 0 · selector Authorization</div>
+      </div>
+      <div class="card">
+        <strong>OpenShift token</strong>
+        <div class="meta">kubernetesTokenReview · audience kubernetes.default.svc · priority 2 when the header is not sk-oai-</div>
+      </div>
+    </div>
+
+    <div class="col">
+      <h2>2. Gateway API · openshift-ingress</h2>
+      <div class="gateway">
+        <h3>Gateway maas-default-gateway</h3>
+        <div class="card">
+          <strong>HTTPRoute maas-api-route</strong>
+          <div class="meta">redhat-ai-gateway-infra · path /maas-api</div>
+        </div>
+        <div class="card">
+          <strong>HTTPRoute facebook-opt-125m-simulated-kserve-route</strong>
+          <div class="meta">namespace llm · /publishers/… and /v1</div>
+        </div>
+        <div class="policy">
+          <strong>AuthPolicy · Connectivity Link</strong>
+          <div class="mono">apiVersion: kuadrant.io/v1</div>
+          <div class="mono">name: maas-gateway-auth</div>
+          <div class="meta">targetRef: Gateway (not each HTTPRoute). maas-controller owns it.</div>
+          <div class="pills"><span class="pill">Accepted</span><span class="pill">Enforced</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <h2>3. Policy pipeline</h2>
+      <div class="step"><span class="num">1</span><div><strong>Authenticate</strong><div class="meta">api-keys or TokenReview</div></div></div>
+      <div class="step"><span class="num">2</span><div><strong>Metadata</strong><div class="meta">POST validate key and select subscription on maas-api :8443</div></div></div>
+      <div class="step"><span class="num">3</span><div><strong>Authorize (OPA)</strong><div class="meta">auth-valid · group membership · subscription-valid</div></div></div>
+      <div class="step"><span class="num">4</span><div><strong>Deny client identity headers</strong><div class="meta">reject inbound X-MaaS-Username / X-MaaS-Group</div></div></div>
+      <div class="step"><span class="num">5</span><div><strong>Inject response headers</strong><div class="meta">X-MaaS-Username · X-MaaS-Group · X-MaaS-Subscription</div></div></div>
+      <p class="skip">Skipped: GET /maas-api/health</p>
+    </div>
+
+    <div class="col">
+      <h2>4. Backends</h2>
+      <div class="backend">
+        <h3>maas-api</h3>
+        <div class="meta">redhat-ai-gateway-infra · OpenShift AI MaaS</div>
+        <div class="card" style="margin-top:8px">
+          <div class="mono">/internal/v1/api-keys/validate</div>
+          <div class="mono">/internal/v1/subscriptions/select</div>
+        </div>
+      </div>
+      <div class="backend">
+        <h3>LLMInferenceService</h3>
+        <div class="meta">facebook/opt-125m · namespace llm</div>
+        <div class="card" style="margin-top:8px">
+          <strong>OpenShift AI Gateway</strong>
+          <div class="meta">HTTPRoute child of maas-default-gateway. Auth already enforced.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="note">
+    <strong>Red Hat Connectivity Link</strong> is the product (RHCL operator).
+    The CRD stays <span class="mono">kuadrant.io/v1 AuthPolicy</span> because Connectivity Link is the supported build of that community API.
+    It attaches to the Gateway, so every child HTTPRoute is covered. OpenShift AI Models as a Service owns the object via maas-controller.
+  </footer>
+</body>
+</html>

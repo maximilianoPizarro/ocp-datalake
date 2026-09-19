@@ -1,0 +1,29 @@
+# OpenShift cluster-admin (CRB on User) is not enough for Argo CD UI.
+# Default GitOps policy only maps groups system:cluster-admins / cluster-admins.
+# RHBK user "admin" has cluster-admin via a direct User binding, and Dex issues an
+# opaque JWT sub with no groups claim — so scopes must include email and we map
+# preferred_username/email "admin" → role:admin.
+apiVersion: argoproj.io/v1beta1
+kind: ArgoCD
+metadata:
+  name: openshift-gitops
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  rbac:
+    defaultPolicy: ""
+    policy: |
+      g, system:cluster-admins, role:admin
+      g, cluster-admins, role:admin
+      g, admin, role:admin
+    scopes: '[groups,email]'
+---
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  name: cluster-admins
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+users:
+  - admin

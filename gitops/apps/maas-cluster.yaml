@@ -32,3 +32,7 @@ spec:
       kind: OdhDashboardConfig
       jsonPointers:
         - /status
+    - group: dscinitialization.opendatahub.io
+      kind: DSCInitialization
+      jsonPointers:
+        - /status

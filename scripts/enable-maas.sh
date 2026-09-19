@@ -23,13 +23,29 @@ CERT_NAME="${CERT_NAME:-router-certs-default}"
 echo "MaaS hostname: ${MAAS_HOSTNAME}"
 echo "TLS secret:    ${CERT_NAME} (openshift-ingress)"
 
-echo "==> operators (RHCL + Leader Worker Set)"
+echo "==> operators (RHCL + Leader Worker Set + observability)"
+# COO must not live in openshift-operators: RHOAI NetworkPolicy only
+# admits perses-operator from openshift-cluster-observability-operator.
+if oc get subscription cluster-observability-operator -n openshift-operators >/dev/null 2>&1; then
+  echo "    moving Cluster Observability Operator out of openshift-operators"
+  oc delete subscription cluster-observability-operator -n openshift-operators --wait=false
+  oc delete csv -n openshift-operators -l operators.coreos.com/cluster-observability-operator.openshift-operators= --wait=false || true
+fi
 oc apply -k "${MAAS_DIR}/operators"
 echo "    waiting for CSVs..."
 oc wait csv -n openshift-operators -l operators.coreos.com/rhcl-operator.openshift-operators= \
   --for=jsonpath='{.status.phase}'=Succeeded --timeout=600s
 oc wait csv -n openshift-lws-operator -l operators.coreos.com/leader-worker-set.openshift-lws-operator= \
   --for=jsonpath='{.status.phase}'=Succeeded --timeout=600s
+oc wait csv -n openshift-cluster-observability-operator \
+  -l operators.coreos.com/cluster-observability-operator.openshift-cluster-observability= \
+  --for=jsonpath='{.status.phase}'=Succeeded --timeout=600s
+oc wait csv -n openshift-operators -l operators.coreos.com/opentelemetry-product.openshift-operators= \
+  --for=jsonpath='{.status.phase}'=Succeeded --timeout=600s
+
+echo "==> User Workload Monitoring + RHOAI metrics stack"
+oc apply -f "${MAAS_DIR}/cluster/cluster-monitoring-config.yaml"
+oc apply --server-side --force-conflicts -f "${MAAS_DIR}/cluster/dsci-monitoring.yaml"
 
 echo "==> Kuadrant / Authorino / Gateway"
 oc apply -k "${MAAS_DIR}/platform"
@@ -39,17 +55,25 @@ oc -n kuadrant-system set env deployment/authorino \
   REQUESTS_CA_BUNDLE=/etc/ssl/certs/openshift-service-ca/service-ca-bundle.crt >/dev/null || true
 oc wait --for=condition=Available deployment/authorino -n kuadrant-system --timeout=300s
 
-if oc get application ocp-datalake-maas-platform -n openshift-gitops >/dev/null 2>&1; then
-  echo "    Gateway hostname is owned by Argo CD (gitops/apps/maas-platform.yaml)."
-  echo "    Edit manifests/maas/platform/gateway.yaml and route.yaml in git for a new domain."
-else
-  echo "==> Gateway ${MAAS_HOSTNAME} (imperative render)"
-  export CLUSTER_DOMAIN CERT_NAME MAAS_HOSTNAME
-  envsubst '${CLUSTER_DOMAIN} ${CERT_NAME} ${MAAS_HOSTNAME}' \
-    < "${MAAS_DIR}/platform/gateway.yaml.tmpl" | oc apply -f -
-  envsubst '${MAAS_HOSTNAME}' < "${MAAS_DIR}/platform/route.yaml.tmpl" | oc apply -f -
+echo "==> Gateway ${MAAS_HOSTNAME} (render from live apps domain)"
+export CLUSTER_DOMAIN CERT_NAME MAAS_HOSTNAME
+if oc get application ocp-datalake-root -n openshift-gitops >/dev/null 2>&1; then
+  # GitHub still has the previous sandbox hostname. Stop the app-of-apps from
+  # reverting ignoreDifferences, then apply the local Application spec.
+  oc patch application ocp-datalake-root -n openshift-gitops --type merge \
+    -p '{"spec":{"syncPolicy":{"automated":{"selfHeal":false,"prune":false}}}}' >/dev/null
+  oc apply -f "${ROOT}/gitops/apps/maas-platform.yaml" >/dev/null
 fi
+envsubst '${CLUSTER_DOMAIN} ${CERT_NAME} ${MAAS_HOSTNAME}' \
+  < "${MAAS_DIR}/platform/gateway.yaml.tmpl" | oc apply -f -
+envsubst '${MAAS_HOSTNAME}' < "${MAAS_DIR}/platform/route.yaml.tmpl" | oc apply -f -
 oc wait --for=condition=Programmed gateway/maas-default-gateway -n openshift-ingress --timeout=180s
+# maas-ui caches Gateway hostname from /v1/tenants at process start.
+if oc get deploy maas-ui -n redhat-ods-applications >/dev/null 2>&1; then
+  echo "    restarting maas-ui so the dashboard picks up ${MAAS_HOSTNAME}"
+  oc rollout restart deploy/maas-ui -n redhat-ods-applications >/dev/null
+  oc rollout status deploy/maas-ui -n redhat-ods-applications --timeout=180s >/dev/null || true
+fi
 
 echo "==> PostgreSQL (API keys). Secrets are cluster-local, not in git."
 if ! oc get secret postgres-creds -n redhat-ods-applications >/dev/null 2>&1; then
@@ -82,8 +106,23 @@ oc patch datasciencecluster default-dsc --type=merge --patch '{
   }
 }'
 oc patch odhdashboardconfig odh-dashboard-config -n redhat-ods-applications --type=merge --patch '{
-  "spec": { "dashboardConfig": { "modelAsService": true, "genAiStudio": true } }
+  "spec": { "dashboardConfig": { "modelAsService": true, "genAiStudio": true, "observabilityDashboard": true } }
 }' >/dev/null
+if oc get maastenantconfig default-tenant -n models-as-a-service >/dev/null 2>&1; then
+  oc patch maastenantconfig default-tenant -n models-as-a-service --type=merge --patch '{
+    "spec": {
+      "telemetry": {
+        "enabled": true,
+        "metrics": {
+          "captureModelUsage": true,
+          "captureOrganization": true,
+          "captureUser": false,
+          "captureGroup": false
+        }
+      }
+    }
+  }' >/dev/null
+fi
 
 echo "    waiting for maas-api..."
 for _ in $(seq 1 60); do
@@ -100,11 +139,44 @@ if oc get secret postgres-creds -n redhat-ods-applications >/dev/null 2>&1; then
   unset PW
 fi
 oc rollout status deployment/maas-api -n redhat-ai-gateway-infra --timeout=180s
+if oc get maastenantconfig default-tenant -n models-as-a-service >/dev/null 2>&1; then
+  oc patch maastenantconfig default-tenant -n models-as-a-service --type=merge --patch '{
+    "spec": {
+      "telemetry": {
+        "enabled": true,
+        "metrics": {
+          "captureModelUsage": true,
+          "captureOrganization": true,
+          "captureUser": false,
+          "captureGroup": false
+        }
+      }
+    }
+  }' >/dev/null
+fi
 
 echo "==> CPU simulator (does not request the L4)"
 oc apply -k "${MAAS_DIR}/simulator"
-oc wait --for=jsonpath='{.status.conditions[?(@.type=="Ready")].status}'=True \
-  llminferenceservice/facebook-opt-125m-simulated -n llm --timeout=300s || true
+echo "    waiting for LLMInferenceService facebook-opt-125m-simulated..."
+READY=""
+for _ in $(seq 1 60); do
+  READY="$(oc get llminferenceservice facebook-opt-125m-simulated -n llm \
+    -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
+  if [ "${READY}" = "True" ]; then
+    break
+  fi
+  sleep 5
+done
+oc get llminferenceservice facebook-opt-125m-simulated -n llm
+if [ "${READY}" != "True" ]; then
+  echo "    warning: simulator not Ready yet (status=${READY:-unknown})" >&2
+fi
+EP="$(oc get maasmodelref facebook-opt-125m-simulated -n llm -o jsonpath='{.status.endpoint}' 2>/dev/null || true)"
+if [ -n "${EP}" ] && [ "${EP}" != "https://${MAAS_HOSTNAME}/" ]; then
+  echo "    catalog URL ${EP} is stale; recreating MaaSModelRef"
+  oc delete maasmodelref facebook-opt-125m-simulated -n llm --wait=true >/dev/null
+  oc apply -k "${MAAS_DIR}/simulator" >/dev/null
+fi
 
 echo
 echo "Health:"

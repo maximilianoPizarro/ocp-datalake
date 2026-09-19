@@ -1,0 +1,11 @@
+# Cluster Observability Operator must live in this namespace.
+# RHOAI NetworkPolicy perses-operator-access only allows Perses API
+# traffic from openshift-cluster-observability-operator. Installing COO
+# in openshift-operators leaves Observe dashboards empty.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-cluster-observability-operator
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake-maas
+    openshift.io/cluster-monitoring: "true"

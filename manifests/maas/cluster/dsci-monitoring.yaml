@@ -1,0 +1,18 @@
+# Server-side apply: owns only metrics storage so the rest of default-dsci stays with the RHOAI operator.
+# Metrics-only: traces/Tempo are not required for the Observe dashboards.
+apiVersion: dscinitialization.opendatahub.io/v2
+kind: DSCInitialization
+metadata:
+  name: default-dsci
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,RespectIgnoreDifferences=true
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+spec:
+  monitoring:
+    managementState: Managed
+    namespace: redhat-ods-monitoring
+    metrics:
+      replicas: 1
+      storage:
+        size: 5Gi
+        retention: 90d

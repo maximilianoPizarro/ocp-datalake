@@ -23,3 +23,15 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: maas-default-gateway
+      jsonPointers:
+        - /spec/listeners
+    - group: route.openshift.io
+      kind: Route
+      name: maas
+      jsonPointers:
+        - /spec/host

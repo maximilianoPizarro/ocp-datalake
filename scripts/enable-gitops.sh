@@ -24,10 +24,21 @@ for _ in $(seq 1 60); do
   sleep 10
 done
 oc get csv -n openshift-gitops-operator -l operators.coreos.com/openshift-gitops-operator.openshift-gitops-operator=
+echo "    waiting for Argo CD instance (CSV can Succeed before the namespace exists)..."
+for _ in $(seq 1 60); do
+  if oc get deploy openshift-gitops-server -n openshift-gitops >/dev/null 2>&1; then
+    break
+  fi
+  sleep 5
+done
 oc wait --for=condition=Available deployment/openshift-gitops-server -n openshift-gitops --timeout=600s
 
 echo "==> Argo CD controller RBAC (PoC cluster-admin)"
 oc apply -f "${ROOT}/gitops/argocd-cluster-admin.yaml"
+
+echo "==> Argo CD UI RBAC (map OpenShift user admin → role:admin)"
+# ClusterRoleBinding cluster-admin on User is invisible to Argo; UI lists empty otherwise.
+oc apply -f "${ROOT}/gitops/argocd-ui-rbac.yaml"
 
 echo "==> App of apps (children are pulled from GitHub main)"
 oc apply -f "${ROOT}/gitops/root-app.yaml"

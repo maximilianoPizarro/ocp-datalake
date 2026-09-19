@@ -14,6 +14,7 @@ DIAGRAMS = [
     ("_diagram-replace-enterprise.html", "replace-enterprise.png"),
     ("_diagram-architecture.html", "architecture.png"),
     ("_diagram-flows.html", "journey.png"),
+    ("_diagram-authpolicy.html", "authpolicy-connectivity-link.png"),
 ]
 
 

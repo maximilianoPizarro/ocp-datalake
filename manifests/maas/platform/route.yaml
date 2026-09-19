@@ -9,7 +9,7 @@ metadata:
     openshift.io/display-name: OpenShift AI Models-as-a-Service
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  host: maas.apps.ocp.bt58s.sandbox2518.opentlc.com
+  host: maas.apps.ocp.ljtfk.sandbox5295.opentlc.com
   to:
     kind: Service
     name: maas-default-gateway-openshift-default
