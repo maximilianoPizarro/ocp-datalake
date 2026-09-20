@@ -10,3 +10,4 @@ resources:
   - maas-platform.yaml
   - maas-postgres.yaml
   - maas-simulator.yaml
+  - devspaces-operator.yaml

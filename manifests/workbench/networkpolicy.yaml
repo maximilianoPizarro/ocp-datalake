@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: workbench-ingress
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/name: ocp-datalake-demo
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  podSelector:
+    matchLabels:
+      notebook-name: ocp-datalake-demo
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8443
+        - protocol: TCP
+          port: 8888
+        - protocol: TCP
+          port: 4180

@@ -21,6 +21,8 @@ Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token t
 | **Red Hat OpenShift Pipelines** (Tekton) | `oc create -f manifests/08-pipelinerun.yaml` promotion twin |
 | **Red Hat OpenShift AI** (Data Science Pipelines) | Dashboard path: KFP `notebook-to-openshift` (seed → validate → register → rollout) |
 | **Red Hat OpenShift AI** (Model Registry) | `ocp-datalake-registry` instance in `rhoai-model-registries` |
+| **Red Hat OpenShift AI** (workbenches) | Jupyter in project `ocp-datalake`: `ocp-datalake-demo`, HardwareProfile `default-profile` (CPU). Example: `notebooks/ocp-datalake-demo.ipynb` |
+| **Red Hat OpenShift Dev Spaces** | Optional in-cluster VS Code (`bash scripts/enable-devspaces.sh`, OperatorHub channel `stable`) |
 | **Red Hat OpenShift GitOps** (Argo CD) | Install path: `bash scripts/enable-gitops.sh` (app-of-apps under `gitops/`). Tekton/KFP still run the model promotion. |
 | **Red Hat OpenShift Web Terminal** | Optional: `oc apply -f manifests/web-terminal-subscription.yaml` — in-console `oc`/`curl` (console header terminal icon). |
 | **Red Hat OpenShift AI** (KServe) | `ServingRuntime` + `InferenceService` for `churn-score` (CPU) |
@@ -122,10 +124,44 @@ Apply (cluster-admin). Preferred: GitOps. Imperative fallback still works. Secre
 bash scripts/enable-gitops.sh
 # first-time MaaS flags + DB secrets if Argo has not created them yet:
 bash scripts/enable-maas.sh
+# CPU workbench + live MAAS_URL ConfigMap (apps domain rotates):
+bash scripts/enable-workbench.sh
 ```
 
 `oc apply -k manifests/maas/platform` is what Argo syncs. `scripts/enable-maas.sh` always rebinds Gateway/Route `maas` to `maas.<apps-domain>` from the live cluster (OpenTLC hostnames rotate). The committed `gateway.yaml` / `route.yaml` are the last known sandbox (`*.apps.ocp.ljtfk.sandbox5295.opentlc.com`, cert `cert-manager-ingress-cert`).
 
+### 5b. Jupyter workbench (CPU)
+
+The demo workbench is GitOps-managed (`manifests/workbench/`, included from the root kustomization). It uses HardwareProfile **`default-profile`** in `redhat-ods-applications` (1–4 CPU, 2–8 Gi). **No GPU** — `llama-32-3b-instruct` keeps the L4.
+
+On every cluster (hostnames rotate), bind the live MaaS URL and wait for the pod:
+
+```bash
+bash scripts/enable-workbench.sh
+```
+
+That applies quota + the Notebook CR (safe to re-run), writes ConfigMap `workbench-demo-env` (not in git), and prints the dashboard link. RHOAI 3.x needs annotation `notebooks.opendatahub.io/inject-auth: "true"` (Gateway API). The old `inject-oauth` annotation makes the dashboard show **Migration required** and Open looks for a Route that does not exist. Set `notebooks.opendatahub.io/last-image-version-git-commit-selection` to the ImageStream tag's `opendatahub.io/notebook-build-commit` (currently `47efb6c` for `s2i-generic-data-science-notebook:3.5`) so the dashboard does not mark the recommended image as **Deprecated**.
+
+Open **ocp-datalake-demo.ipynb**: cell 1 hits in-cluster `POST /predict`; cell 2 mints a MaaS key and calls `/v1/chat/completions`.
+
+Imperative fallback without the wrapper:
+
+```bash
+oc apply -f manifests/01-quota.yaml
+oc apply -k manifests/workbench
+```
+
+Optional IDE on a cluster with spare pod capacity (OperatorHub `devspaces` channel `stable`). GitOps installs the operator only; `CheCluster` is opt-in because this 1-node sandbox sits at kubelet pod density (250/250) and `che-server` would stay Pending:
+
+```bash
+bash scripts/enable-devspaces.sh
+```
+
+To fill Observe → Usage token series from a laptop:
+
+```bash
+bash scripts/maas-usage-load.sh
+```
 
 Call the OpenAI-compatible API (body-based routing). Do not commit the `sk-oai-` key.
 
@@ -161,15 +197,16 @@ That installs the OpenShift GitOps operator (channel `latest`) and syncs:
 
 | Argo application | Path | Wave |
 | --- | --- | --- |
-| `ocp-datalake` | repo root kustomize (`churn-score`) | 0 |
+| `ocp-datalake` | repo root kustomize (`churn-score` + CPU workbench) | 0 |
 | `ocp-datalake-registry` | `manifests/registry/` | 0 |
 | `ocp-datalake-maas-operators` | RHCL + Leader Worker Set | 0 |
 | `ocp-datalake-maas-cluster` | DSC MaaS flags + dashboard (server-side apply) | 1 |
-| `ocp-datalake-maas-platform` | Kuadrant, Gateway, Route `maas` | 2 |
+| `ocp-datalake-maas-platform` | Connectivity Link, Gateway, Route `maas` | 2 |
 | `ocp-datalake-maas-postgres` | API-key DB (password via PreSync Job, not git) | 2 |
 | `ocp-datalake-maas-simulator` | CPU `LLMInferenceService` + MaaS CRs | 3 |
+| `ocp-datalake-devspaces-operator` | Dev Spaces Subscription (`stable`) | 0 |
 
-`prune` is off. Do not point this at a cluster where you need Argo to delete unused objects. On a **new** install you still need OpenShift, OpenShift AI 3.5, and OpenShift Pipelines already present. Change the Gateway hostname in git before the first sync if the apps domain is not this sandbox.
+`prune` is off. Do not point this at a cluster where you need Argo to delete unused objects. On a **new** install you still need OpenShift, OpenShift AI 3.5, and OpenShift Pipelines already present. After the first GitOps sync, run `bash scripts/enable-workbench.sh` so ConfigMap `workbench-demo-env` gets the live `maas.<apps-domain>`. Change the Gateway hostname in git before the first sync if the apps domain is not this sandbox.
 
 UI: Route `openshift-gitops-server` in `openshift-gitops` (OpenShift OAuth), or Administrator → GitOps.
 
@@ -234,7 +271,7 @@ The OpenShift pieces (KServe, RHBK, Tekton/KFP, quota, NetworkPolicy) are the ha
 
 | Databricks capability | Red Hat (this PoC) | Community / gap |
 | --- | --- | --- |
-| Notebooks / workspace | OpenShift AI workbenches | VS Code on cluster |
+| Notebooks / workspace | OpenShift AI workbenches (`ocp-datalake-demo`, CPU) + Dev Spaces | — |
 | Jobs / Workflows | OpenShift Pipelines, Data Science Pipelines | Argo Workflows; GitOps does not run training |
 | MLflow Tracking | KFP / DSPA run metadata | Self-hosted MLflow; no RH tracking product |
 | Model Registry + UC models | OpenShift AI Model Registry (`ocp-datalake-registry`) | UC grants stay on Databricks; pull via `databricks-uc` |
@@ -280,13 +317,15 @@ Apply manifests via GitOps (preferred) or `oc`, then promote:
 
 ```bash
 bash scripts/enable-gitops.sh
+bash scripts/enable-workbench.sh
 # or: oc apply -k . && oc apply -k manifests/registry
 
 # Tekton twin
 oc create -f manifests/08-pipelinerun.yaml
 oc get pipelinerun,inferenceservice -n ocp-datalake -w
 
-# OpenShift AI: open the RHOAI dashboard → project ocp-datalake → Pipelines → notebook-to-openshift
+# OpenShift AI: project ocp-datalake → Workbenches → ocp-datalake demo
+# Pipelines → notebook-to-openshift
 ```
 
 Recompile the KFP manifest after editing `pipelines/notebook_to_openshift.py`:
@@ -304,12 +343,15 @@ LICENSE                     Apache License 2.0
 apps/inference/server.py    inference HTTP contract (native + KServe v1)
 apps/model/model.json       hand-written linear artifact (not an MLflow directory)
 scripts/s3_model.py         SigV4 helper for a future ODF/NooBaa bucket (not on the live path)
-manifests/                  namespace, quota, DSPA, Tekton + KFP pipeline, KServe
-manifests/maas/             RHCL, Kuadrant, Gateway, Postgres, CPU simulator + MaaS CRs (not in root kustomization)
+manifests/                  namespace, quota, DSPA, Tekton + KFP pipeline, KServe, CPU workbench
+manifests/maas/             Connectivity Link, Gateway, Postgres, CPU simulator + MaaS CRs (not in root kustomization)
 manifests/registry/         Model Registry instance + pipeline RBAC (Argo app)
+manifests/workbench/        Notebook CR + PVC (HardwareProfile default-profile)
+manifests/devspaces/        Dev Spaces operator Subscription + CheCluster
+notebooks/                  ocp-datalake-demo.ipynb (/predict + MaaS chat)
 gitops/                     OpenShift GitOps operator + Argo CD app-of-apps
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
-scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh
+scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, maas-usage-load.sh
 docs/                       GitHub Pages site (journey + screenshots)
 docs/assets/diagrams/       architecture and journey SVGs
 docs/assets/screenshots/    live OpenShift and OpenShift AI captures

@@ -43,11 +43,12 @@
       <button type="button" data-slide="0" aria-current="true">Map</button>
       <button type="button" data-slide="2">OpenShift</button>
       <button type="button" data-slide="10">OpenShift AI</button>
-      <button type="button" data-slide="16">/predict</button>
-      <button type="button" data-slide="17">MaaS</button>
-      <button type="button" data-slide="24">curl</button>
-      <button type="button" data-slide="26">Observe</button>
-      <button type="button" data-slide="29">GitOps</button>
+      <button type="button" data-slide="16">Workbench</button>
+      <button type="button" data-slide="19">/predict</button>
+      <button type="button" data-slide="20">MaaS</button>
+      <button type="button" data-slide="27">curl</button>
+      <button type="button" data-slide="29">Observe</button>
+      <button type="button" data-slide="34">GitOps</button>
       <a href="#authpolicy">Auth path</a>
       <a href="#compat">Compat</a>
       <a href="#bridge">Bridge</a>
@@ -201,9 +202,36 @@
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img class="is-diagram" src="assets/screenshots/15-predict.png" alt="POST /predict returns churn true probability 0.5987" width="1448" height="954">
+          <img src="assets/screenshots/30-rhoai-workbench-list.png" alt="ocp-datalake demo workbench Ready on default-profile with Jupyter Data Science CPU Python 3.12 Latest" width="1424" height="954">
           <figcaption>
             <span class="slide-num">Step 17</span>
+            <strong>Workbench · Ready</strong>
+            <span class="desc">Project <code>ocp-datalake</code> → Workbenches. CPU HardwareProfile <code>default-profile</code>. Image Jupyter | Data Science | CPU | Python 3.12 tag <code>3.5</code> (Latest). The L4 stays on Llama. Open uses Gateway API (<code>inject-auth</code>).</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/31-rhoai-workbench-predict.png" alt="JupyterLab ocp-datalake-demo.ipynb POST /predict returns churn true probability 0.5987" width="1424" height="954">
+          <figcaption>
+            <span class="slide-num">Step 18</span>
+            <strong>Workbench · /predict</strong>
+            <span class="desc">Live JupyterLab on the same-origin Gateway URL. Cell 2 posts to in-cluster <code>inference:4180/predict</code>: <code>churn: true</code>, probability 0.5987, source <code>databricks-mlflow</code>.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/32-rhoai-workbench-maas.png" alt="JupyterLab MaaS chat completions with key prefix and token usage" width="1424" height="954">
+          <figcaption>
+            <span class="slide-num">Step 19</span>
+            <strong>Workbench · MaaS chat</strong>
+            <span class="desc">ServiceAccount token mints an <code>sk-oai-</code> key (prefix only in the capture), lists <code>facebook/opt-125m</code>, then <code>/v1/chat/completions</code>. Usage in the payload: prompt tokens 6. Do not commit full keys.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img class="is-diagram" src="assets/screenshots/15-predict.png" alt="POST /predict returns churn true probability 0.5987" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 20</span>
             <strong>Call /predict</strong>
             <span class="desc">tenure 12 / charges 70 / tickets 3 → <code>churn: true</code> (0.5987). The consumer never talks to Databricks.</span>
           </figcaption>
@@ -212,7 +240,7 @@
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/16-maas-ai-assets.png" alt="OpenShift AI AI asset endpoints listing Facebook OPT 125M Simulated Ready" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 18</span>
+            <span class="slide-num">Step 21</span>
             <strong>AI asset endpoints</strong>
             <span class="desc">Gen AI studio → AI asset endpoints. <code>Facebook OPT 125M (Simulated)</code> is Ready as an AI asset (<code>opendatahub.io/genai-asset=true</code>). Use case LLM. The GPU is not on this model.</span>
           </figcaption>
@@ -221,7 +249,7 @@
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/17-maas-endpoints.png" alt="Endpoints dialog with Model as a Service badge and maas Route URL" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 19</span>
+            <span class="slide-num">Step 22</span>
             <strong>Model as a Service URL</strong>
             <span class="desc">External API endpoint is the Route <code>https://maas.&lt;apps-domain&gt;/</code>. Badge <em>Model as a Service</em>. Pick a subscription, then mint an <code>sk-oai-</code> key. GET <code>/</code> is 404 by design; talk to <code>/v1/chat/completions</code>.</span>
           </figcaption>
@@ -230,7 +258,7 @@
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/18-maas-api-keys.png" alt="OpenShift AI API keys page with Simulator Free Tier keys" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 20</span>
+            <span class="slide-num">Step 23</span>
             <strong>API keys</strong>
             <span class="desc">Dashboard: Gen AI studio → API keys. Keys bind to a MaaS subscription (here Simulator Free Tier). Short-lived keys expire; mint a new one for a demo call.</span>
           </figcaption>
@@ -239,7 +267,7 @@
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/19-maas-governance.png" alt="MaaS governance subscriptions Simulator Free and Premium Ready" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 21</span>
+            <span class="slide-num">Step 24</span>
             <strong>MaaS subscriptions</strong>
             <span class="desc">Settings → MaaS governance. Free (100 tokens/min) and Premium (10000 tokens/min) are Ready. This is LLM access policy, not churn-score.</span>
           </figcaption>
@@ -248,16 +276,16 @@
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/20-maas-auth-policies.png" alt="MaaS authorization policy Simulator Access Ready" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 22</span>
+            <span class="slide-num">Step 25</span>
             <strong>Authorization policies</strong>
-            <span class="desc"><code>Simulator Access</code> Ready: authenticated users may call the simulator. Connectivity Link / Kuadrant enforces the policy on the gateway.</span>
+            <span class="desc"><code>Simulator Access</code> Ready: authenticated users may call the simulator. Connectivity Link enforces the policy on the gateway.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/21-maas-llmis.png" alt="LLMInferenceService facebook-opt-125m-simulated Ready in namespace llm" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 23</span>
+            <span class="slide-num">Step 26</span>
             <strong>LLMInferenceService</strong>
             <span class="desc">OpenShift: <code>facebook-opt-125m-simulated</code> in <code>llm</code>, Ready True. Labels include <code>opendatahub.io/genai-asset=true</code> so it shows in the dashboard. CPU simulator; Llama keeps the L4.</span>
           </figcaption>
@@ -266,7 +294,7 @@
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/22-maas-route.png" alt="OpenShift Route maas in openshift-ingress Accepted passthrough" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 24</span>
+            <span class="slide-num">Step 27</span>
             <strong>Route maas</strong>
             <span class="desc">Namespace <code>openshift-ingress</code>, service <code>maas-default-gateway-openshift-default</code>, TLS passthrough, Admitted. Host <code>maas.apps.&lt;cluster&gt;</code>.</span>
           </figcaption>
@@ -275,7 +303,7 @@
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/23-web-terminal-predict.png" alt="Web Terminal curl healthz predict and KServe v1 against churn-score" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 25</span>
+            <span class="slide-num">Step 28</span>
             <strong>Web Terminal · /predict</strong>
             <span class="desc">OpenShift Web Terminal (operator channel <code>fast</code>) with <code>curl</code> against the inference Route. Native <code>/predict</code> and KServe v1 <code>instances[]</code> return the same churn probability.</span>
           </figcaption>
@@ -284,52 +312,70 @@
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/24-web-terminal-maas.png" alt="Web Terminal curl MaaS api-keys models and chat completions" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 26</span>
+            <span class="slide-num">Step 29</span>
             <strong>Web Terminal · MaaS</strong>
             <span class="desc">Mint an <code>sk-oai-</code> key with your OpenShift token, list models, then call <code>/v1/chat/completions</code> on the simulator. Key prefix only in the capture — do not commit full keys.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/27-rhoai-observe-cluster.png" alt="OpenShift AI Observability dashboard Cluster tab with system health 100 percent" width="1191" height="954">
+          <img src="assets/screenshots/33-rhoai-observe-cluster-cpu.png" alt="OpenShift AI Observe Cluster Project All stacked CPU and memory by project" width="1424" height="954">
           <figcaption>
-            <span class="slide-num">Step 27</span>
-            <strong>Observe · Cluster</strong>
-            <span class="desc">OpenShift AI → Observe &amp; monitor → Dashboard. Cluster tab: node health, deployed models, memory. Requires Cluster Observability Operator in <code>openshift-cluster-observability-operator</code>.</span>
+            <span class="slide-num">Step 30</span>
+            <strong>Observe · Cluster CPU</strong>
+            <span class="desc">Project All: stacked CPU and memory by project is the live capacity view. GPU stays empty here — Llama holds the L4; the workbench and simulator are CPU. Requires Cluster Observability Operator.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/28-rhoai-observe-models.png" alt="OpenShift AI Observability Models tab listing facebook/opt-125m in llm" width="1191" height="954">
+          <img src="assets/screenshots/27-rhoai-observe-cluster.png" alt="OpenShift AI Observability Cluster tab Project All system health 100 percent" width="1424" height="954">
           <figcaption>
-            <span class="slide-num">Step 28</span>
+            <span class="slide-num">Step 31</span>
+            <strong>Observe · Cluster health</strong>
+            <span class="desc">Cluster tab, Project All. System health 100%, one deployed model, memory allocated ~28%. GPU utilization empty by design on this PoC path.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/28-rhoai-observe-models.png" alt="OpenShift AI Observability Models tab facebook/opt-125m 44 requests in llm" width="1424" height="954">
+          <figcaption>
+            <span class="slide-num">Step 32</span>
             <strong>Observe · Models</strong>
-            <span class="desc"><code>facebook/opt-125m</code> in <code>llm</code>: latency, error rate, CPU. The GPU stays on Llama; this simulator is CPU-only.</span>
+            <span class="desc"><code>facebook/opt-125m</code> in <code>llm</code>: 44 requests after the workbench chat cell and <code>maas-usage-load.sh</code>. P90 270 ms, error 0%, GPU 0%, CPU cores on the simulator. Llama keeps the L4.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/34-rhoai-observe-llm-traffic.png" alt="OpenShift AI LLM Traffic token throughput tokens per second after MaaS load" width="1424" height="954">
+          <figcaption>
+            <span class="slide-num">Step 33</span>
+            <strong>Observe · Token throughput</strong>
+            <span class="desc">LLM Traffic: token throughput (tokens/s) after 40 simulator chat rounds plus the workbench cell. Total / input / output series. Error rate stays at 0. Throughput (req/s) can lag; tokens are the useful signal.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/29-rhoai-observe-usage.png" alt="OpenShift AI Observability Usage tab for MaaS tokens requests and rate limits" width="1191" height="954">
           <figcaption>
-            <span class="slide-num">Step 29</span>
+            <span class="slide-num">Step 34</span>
             <strong>Observe · Usage</strong>
-            <span class="desc">MaaS token consumption, requests, and rate-limits by subscription. Tech Preview. Counters stay at zero until Limitador token series are scraped; the tab is the governed showback surface.</span>
+            <span class="desc">MaaS Usage (Limitador, Tech Preview) can stay at 0 while LLM Traffic already shows tokens. Secondary to Cluster CPU and token throughput. Re-check after scrape, or keep using <code>bash scripts/maas-usage-load.sh</code>.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/25-gitops-apps.png" alt="OpenShift GitOps Applications all Synced and Healthy" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 30</span>
+            <span class="slide-num">Step 35</span>
             <strong>OpenShift GitOps</strong>
-            <span class="desc">App of apps under <code>gitops/</code>. Eight Applications: churn-score, Model Registry, and the MaaS layers. <code>prune</code> is off. Install: <code>bash scripts/enable-gitops.sh</code>.</span>
+            <span class="desc">App of apps under <code>gitops/</code>. Applications: churn-score (includes the CPU workbench), Model Registry, MaaS layers, Dev Spaces operator. <code>CheCluster</code> is opt-in (<code>bash scripts/enable-devspaces.sh</code>) so a 1-node sandbox does not exhaust kubelet pod density. <code>prune</code> is off. Install: <code>bash scripts/enable-gitops.sh</code>.</span>
           </figcaption>
         </figure>
 
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/26-gitops-oc.png" alt="oc get application shows eight GitOps apps Synced Healthy" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 31</span>
+            <span class="slide-num">Step 36</span>
             <strong>oc get application</strong>
             <span class="desc">Same list from the CLI. Tekton and KFP still promote the model; Argo keeps the cluster copy matching <code>main</code>.</span>
           </figcaption>
@@ -343,7 +389,7 @@
           <button type="button" class="journey-btn" id="journey-fs" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button>
         </div>
         <div class="journey-dots" id="journey-dots" role="tablist" aria-label="Steps"></div>
-        <span class="journey-status" id="journey-status" aria-live="polite">1 / 31</span>
+        <span class="journey-status" id="journey-status" aria-live="polite">1 / 36</span>
       </div>
     </div>
     <p class="hint">← → to move · F for fullscreen · click a capture or diagram to enlarge</p>
@@ -428,7 +474,7 @@ curl -sk "$MAAS_URL/v1/chat/completions" \
           <tr><th>Databricks capability</th><th>This PoC</th><th>Red Hat</th><th>Community</th><th>Gap note</th></tr>
         </thead>
         <tbody>
-          <tr><td>Notebooks / workspace</td><td>Not used (artifact is static JSON)</td><td>OpenShift AI workbenches (Jupyter)</td><td>VS Code on cluster, JupyterHub</td><td>Training stays in Databricks or moves to RHOAI notebooks.</td></tr>
+          <tr><td>Notebooks / workspace</td><td>OpenShift AI workbench <code>ocp-datalake-demo</code> (CPU <code>default-profile</code>)</td><td>OpenShift AI workbenches, OpenShift Dev Spaces</td><td>—</td><td>No GPU on the workbench. The L4 stays on Llama. Example notebook calls <code>/predict</code> and MaaS chat.</td></tr>
           <tr><td>Jobs / Workflows</td><td>Tekton + KFP promotion only</td><td>OpenShift Pipelines, Data Science Pipelines</td><td>Argo Workflows</td><td>GitOps installs; it does not run training jobs.</td></tr>
           <tr><td>MLflow Tracking</td><td>Not connected</td><td>KFP run metadata, DSPA history (dev MinIO here)</td><td>Self-hosted MLflow Tracking server</td><td>No Red Hat–branded MLflow Tracking product.</td></tr>
           <tr><td>Model Registry (legacy + UC models)</td><td>PVC + RHOAI <code>ocp-datalake-registry</code></td><td>OpenShift AI Model Registry</td><td>MLflow Registry (if self-hosted)</td><td>UC grants and <code>databricks-uc</code> URI are on the Databricks side.</td></tr>
@@ -444,7 +490,7 @@ curl -sk "$MAAS_URL/v1/chat/completions" \
       </table>
       </div>
       <h3>Enterprise architecture views</h3>
-      <p>PatternFly-style reference diagrams with official Red Hat product marks and community equivalents. Source: <code>docs/_diagram-bridge-enterprise.html</code>, <code>docs/_diagram-replace-enterprise.html</code> (render with <code>python scripts/render-diagrams.py</code>).</p>
+      <p>Source HTML: <code>docs/_diagram-bridge-enterprise.html</code>, <code>docs/_diagram-replace-enterprise.html</code> (render with <code>python scripts/render-diagrams.py</code>).</p>
       <figure class="enterprise-diagram">
         <img src="assets/diagrams/bridge-enterprise.png" alt="Enterprise bridge: Databricks plane left, OpenShift pull store govern serve right" width="1600" height="900" loading="lazy" data-zoom>
         <figcaption><strong>Combined (bridge).</strong> Databricks trains and catalogs; OpenShift pulls via OAuth M2M, stores on ODF, registers, and serves under cluster policy.</figcaption>

@@ -37,3 +37,11 @@ spec:
       kind: DataSciencePipelinesApplication
       jsonPointers:
         - /status
+    - group: kubeflow.org
+      kind: Notebook
+      jsonPointers:
+        - /status
+        - /metadata/annotations
+        - /spec/template/spec/containers
+        - /spec/template/spec/volumes
+        - /spec/template/spec/initContainers

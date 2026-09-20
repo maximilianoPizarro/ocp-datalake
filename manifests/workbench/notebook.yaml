@@ -1,0 +1,118 @@
+# CPU workbench. HardwareProfile default-profile (redhat-ods-applications).
+# No GPU — llama-32-3b-instruct keeps the L4.
+# RHOAI 3.x Gateway API: inject-auth (not the old inject-oauth Route).
+apiVersion: kubeflow.org/v1
+kind: Notebook
+metadata:
+  name: ocp-datalake-demo
+  namespace: ocp-datalake
+  labels:
+    app: ocp-datalake-demo
+    app.kubernetes.io/name: ocp-datalake-demo
+    app.kubernetes.io/part-of: ocp-datalake
+    opendatahub.io/dashboard: "true"
+  annotations:
+    notebooks.opendatahub.io/inject-auth: "true"
+    notebooks.opendatahub.io/last-image-selection: s2i-generic-data-science-notebook:3.5
+    notebooks.opendatahub.io/last-image-version-git-commit-selection: 47efb6c
+    opendatahub.io/accelerator-name: ""
+    opendatahub.io/hardware-profile-name: default-profile
+    opendatahub.io/hardware-profile-namespace: redhat-ods-applications
+    opendatahub.io/image-display-name: Jupyter | Data Science | CPU | Python 3.12
+    openshift.io/description: Demo notebook for /predict and MaaS chat (CPU).
+    openshift.io/display-name: ocp-datalake demo
+spec:
+  template:
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: ocp-datalake-demo
+      containers:
+        - name: ocp-datalake-demo
+          image: image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:3.5
+          imagePullPolicy: IfNotPresent
+          workingDir: /opt/app-root/src
+          env:
+            - name: NOTEBOOK_ARGS
+              value: |
+                --ServerApp.port=8888
+                --ServerApp.token=''
+                --ServerApp.password=''
+                --ServerApp.base_url=/notebook/ocp-datalake/ocp-datalake-demo
+                --ServerApp.quit_button=False
+            - name: NB_PREFIX
+              value: /notebook/ocp-datalake/ocp-datalake-demo
+            - name: JUPYTER_IMAGE
+              value: image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:3.5
+            - name: CHURN_PREDICT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: workbench-demo-env
+                  key: CHURN_PREDICT_URL
+                  optional: true
+            - name: MAAS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: workbench-demo-env
+                  key: MAAS_URL
+                  optional: true
+            - name: MAAS_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: workbench-demo-env
+                  key: MAAS_MODEL
+                  optional: true
+          ports:
+            - name: notebook-port
+              containerPort: 8888
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /notebook/ocp-datalake/ocp-datalake-demo/api
+              port: notebook-port
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /notebook/ocp-datalake/ocp-datalake-demo/api
+              port: notebook-port
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - |
+                    src=/opt/app-root/src/.demo/ocp-datalake-demo.ipynb
+                    dest=/opt/app-root/src/ocp-datalake-demo.ipynb
+                    if [ -f "$src" ] && [ ! -f "$dest" ]; then cp "$src" "$dest"; fi
+          volumeMounts:
+            - name: ocp-datalake-demo
+              mountPath: /opt/app-root/src
+            - name: demo-notebook
+              mountPath: /opt/app-root/src/.demo
+              readOnly: true
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: ocp-datalake-demo
+          persistentVolumeClaim:
+            claimName: ocp-datalake-demo
+        - name: demo-notebook
+          configMap:
+            name: workbench-demo-notebook
+        - name: shm
+          emptyDir:
+            medium: Memory

@@ -15,6 +15,7 @@ resources:
   - manifests/10-dspa.yaml
   - manifests/10b-dspa-minio-netpol.yaml
   - manifests/12-kfp-pipeline.yaml
+  - manifests/workbench
 configMapGenerator:
   - name: inference-src
     files:
@@ -28,6 +29,9 @@ configMapGenerator:
       - register_model.py=scripts/register_model.py
       - pvc_job.py=scripts/pvc_job.py
       - model.json=apps/model/model.json
+  - name: workbench-demo-notebook
+    files:
+      - ocp-datalake-demo.ipynb=notebooks/ocp-datalake-demo.ipynb
 generatorOptions:
   disableNameSuffixHash: true
 labels:

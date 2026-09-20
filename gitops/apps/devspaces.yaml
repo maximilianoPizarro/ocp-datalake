@@ -1,0 +1,36 @@
+# Opt-in CheCluster Application. Not listed in gitops/apps/kustomization.yaml:
+# this 1-node sandbox sits at kubelet pod density (250). Apply with
+#   bash scripts/enable-devspaces.sh
+# on a cluster that has ~8 free pod slots.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ocp-datalake-devspaces
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maximilianoPizarro/ocp-datalake.git
+    targetRevision: main
+    path: manifests/devspaces/cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-devspaces
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: org.eclipse.che
+      kind: CheCluster
+      jsonPointers:
+        - /status
+        - /spec/networking

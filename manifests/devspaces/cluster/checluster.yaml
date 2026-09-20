@@ -1,0 +1,34 @@
+# Red Hat OpenShift Dev Spaces 3.x (CheCluster v2). CPU only; no GPU.
+# Apply after the Dev Spaces operator CSV is Succeeded (scripts/enable-devspaces.sh).
+apiVersion: org.eclipse.che/v2
+kind: CheCluster
+metadata:
+  name: devspaces
+  namespace: openshift-devspaces
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: devspaces
+spec:
+  components:
+    cheServer:
+      debug: false
+      logLevel: INFO
+    pluginRegistry: {}
+    devfileRegistry: {}
+    imagePuller:
+      enable: false
+  containerRegistry: {}
+  devEnvironments:
+    defaultEditor: che-incubator/che-code/latest
+    defaultNamespace:
+      autoProvision: true
+    disableContainerBuildCapabilities: true
+    maxNumberOfRunningWorkspacesPerUser: 1
+    maxNumberOfWorkspacesPerUser: 2
+    secondsOfInactivityBeforeIdling: 1800
+    secondsOfRunBeforeIdling: -1
+    startTimeoutSeconds: 300
+    storage:
+      pvcStrategy: per-user
+  networking:
+    auth: {}

@@ -15,11 +15,11 @@ spec:
         cpu: 50m
         memory: 64Mi
       max:
-        cpu: "2"
-        memory: 2Gi
+        cpu: "4"
+        memory: 8Gi
     - type: PersistentVolumeClaim
       max:
-        storage: 1Gi
+        storage: 2Gi
 ---
 apiVersion: v1
 kind: ResourceQuota
@@ -31,9 +31,9 @@ metadata:
 spec:
   hard:
     pods: "24"
-    requests.cpu: "3"
-    requests.memory: 4Gi
-    limits.cpu: "10"
-    limits.memory: 12Gi
-    persistentvolumeclaims: "3"
-    requests.storage: 3Gi
+    requests.cpu: "6"
+    requests.memory: 10Gi
+    limits.cpu: "16"
+    limits.memory: 20Gi
+    persistentvolumeclaims: "5"
+    requests.storage: 5Gi
