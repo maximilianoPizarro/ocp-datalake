@@ -27,12 +27,6 @@ free_pods() {
   echo $((alloc - running))
 }
 
-restore_limits() {
-  oc patch limitrange ocp-datalake-limits -n ocp-datalake --type=json -p \
-    '[{"op":"replace","path":"/spec/limits/0/default/memory","value":"256Mi"},{"op":"replace","path":"/spec/limits/0/defaultRequest/memory","value":"64Mi"}]' \
-    >/dev/null 2>&1 || true
-}
-
 echo "==> remove Camel K operator (obsolete on this cluster)"
 oc delete application ocp-datalake-camel-operator -n openshift-gitops --ignore-not-found
 oc delete subscription red-hat-camel-k -n openshift-operators --ignore-not-found
@@ -48,30 +42,48 @@ done
 echo "==> OpenShift Integration Operator ${CHART_VERSION} (no console plugin, no Kaoto)"
 helm repo add openshift-integration https://maximilianopizarro.github.io/openshift-integration-operator/ >/dev/null
 helm repo update openshift-integration >/dev/null
+# Chart schema rejects replicas < 1. Install, then scale to 0 before the
+# process can start Kaoto and the collector. Those flags are not in the chart.
 helm upgrade --install "${RELEASE}" openshift-integration/openshift-integration-operator \
   --version "${CHART_VERSION}" \
   --namespace "${NS}" \
   --create-namespace \
-  --set operator.replicas=0 \
   --set consolePlugin.enabled=false \
   --set kaoto.enabled=false \
   --set sonataflow.enabled=false \
   --set workers.enabled=false \
   --set workers.maxReplicas=1
-
-# The chart does not pass these flags. Set them before the first start so the
-# operator does not create Kaoto, the collector, or a Tekton pipeline.
+oc scale "deployment/${RELEASE}" -n "${NS}" --replicas=0
 oc set env "deployment/${RELEASE}" -n "${NS}" \
   KAOTO_ENABLED=false \
   OTEL_COLLECTOR_ENABLED=false \
   TEKTON_ENABLED=false \
   SONATAFLOW_ENABLED=false \
   WORKERS_ENABLED=false \
-  WORKERS_MAX_REPLICAS=1
+  WORKERS_MAX_REPLICAS=1 \
+  GITEA_PASSWORD=unused \
+  GIT_PASSWORD=unused
+oc delete deploy kaoto integration-otel-collector integration-console-plugin -n "${NS}" --ignore-not-found
+oc delete consoleplugin integration-console-plugin --ignore-not-found
 
 echo "    waiting for serving cert..."
 for _ in $(seq 1 30); do
   if oc get secret "${RELEASE}-serving-cert" -n "${NS}" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+
+# The chart does not ship the CRD. The process exits if it is missing.
+oc apply -f "https://raw.githubusercontent.com/maximilianoPizarro/openshift-integration-operator/v${CHART_VERSION}/bundle/manifests/integrationflows.platform.io-v1.crd.yml"
+# Owner references set blockOwnerDeletion. OpenShift forbids that unless the
+# operator can update the IntegrationFlow finalizers subresource.
+if ! oc get clusterrole "${RELEASE}" -o jsonpath='{.rules[*].resources}' | grep -q 'integrationflows/finalizers'; then
+  oc patch clusterrole "${RELEASE}" --type=json -p \
+    '[{"op":"add","path":"/rules/-","value":{"apiGroups":["platform.io"],"resources":["integrationflows/finalizers"],"verbs":["update"]}}]'
+fi
+for _ in $(seq 1 30); do
+  if ! oc get pods -n "${NS}" -l app.kubernetes.io/instance="${RELEASE}" --no-headers 2>/dev/null | grep -q .; then
     break
   fi
   sleep 2
@@ -86,7 +98,7 @@ fi
 
 oc scale "deployment/${RELEASE}" -n "${NS}" --replicas=1
 echo "    waiting for operator..."
-oc rollout status "deployment/${RELEASE}" -n "${NS}" --timeout=180s
+oc rollout status "deployment/${RELEASE}" -n "${NS}" --timeout=300s
 # Startup creates a ConsolePlugin CR. The plugin Deployment is off; drop the CR
 # so the console does not try to load a missing backend.
 oc delete consoleplugin integration-console-plugin --ignore-not-found
@@ -110,14 +122,9 @@ if [ "${FREE}" -lt 1 ]; then
   exit 1
 fi
 
-# JVM worker needs more than the namespace default limit (256Mi). Raise it
-# only while this script creates the worker, then restore on exit.
-oc patch limitrange ocp-datalake-limits -n ocp-datalake --type=json -p \
-  '[{"op":"replace","path":"/spec/limits/0/default/memory","value":"768Mi"},{"op":"replace","path":"/spec/limits/0/defaultRequest/memory","value":"256Mi"}]'
-trap restore_limits EXIT
-
-echo "==> IntegrationFlow churn-score-bridge + Route"
-oc apply -k "${ROOT}/manifests/integration"
+echo "==> IntegrationFlow churn-score-bridge"
+oc apply -f "${ROOT}/manifests/integration/flow.yaml"
+oc apply -f "${ROOT}/manifests/integration/networkpolicy.yaml"
 
 echo "    waiting for phase Running..."
 PHASE=""
@@ -137,6 +144,13 @@ if [ "${PHASE}" != "Running" ]; then
   oc describe integrationflow churn-score-bridge -n ocp-datalake | tail -40 || true
   exit 1
 fi
+
+# The operator creates the Service with an unnamed port. Name it so the Route can bind.
+oc patch svc iflow-churn-score-bridge -n ocp-datalake --type=json -p \
+  '[{"op":"add","path":"/spec/ports/0/name","value":"http"}]' >/dev/null 2>&1 \
+  || oc patch svc iflow-churn-score-bridge -n ocp-datalake --type=json -p \
+    '[{"op":"replace","path":"/spec/ports/0/name","value":"http"}]'
+oc apply -f "${ROOT}/manifests/integration/route.yaml"
 
 HOST="$(oc get route churn-camel -n ocp-datalake -o jsonpath='{.spec.host}')"
 echo

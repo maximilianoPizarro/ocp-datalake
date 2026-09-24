@@ -27,10 +27,19 @@ spec:
         from:
           uri: "platform-http:/score?httpMethodRestrict=POST"
           steps:
-            - unmarshal:
-                json: {}
+            - setHeader:
+                name: tenure
+                jsonpath: "$.features.account_tenure_months"
+            - setHeader:
+                name: charges
+                jsonpath: "$.features.monthly_charges"
+            - setHeader:
+                name: tickets
+                jsonpath: "$.features.open_support_tickets"
             - setBody:
-                simple: '{"tenure":${body[features][account_tenure_months]},"charges":${body[features][monthly_charges]},"support_tickets":${body[features][open_support_tickets]}}'
+                simple: '{"tenure":${header.tenure},"charges":${header.charges},"support_tickets":${header.tickets}}'
+            - removeHeaders:
+                pattern: "CamelHttp*"
             - setHeader:
                 name: Content-Type
                 constant: application/json
