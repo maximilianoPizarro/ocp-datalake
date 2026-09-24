@@ -23,7 +23,6 @@ Do not commit `oc` tokens, kubeconfigs, or cloud credentials. Rotate any token t
 | **Red Hat OpenShift AI** (Model Registry) | `ocp-datalake-registry` instance in `rhoai-model-registries` |
 | **Red Hat OpenShift AI** (workbenches) | Jupyter in project `ocp-datalake`: `ocp-datalake-demo`, HardwareProfile `default-profile` (CPU). Example: `notebooks/ocp-datalake-demo.ipynb` |
 | **Red Hat OpenShift Dev Spaces** | Optional in-cluster VS Code (`bash scripts/enable-devspaces.sh`, OperatorHub channel `stable`) |
-| **Red Hat Integration - Camel K** | Optional bridge: Spark-shaped JSON → `churn-score` `/predict` (`bash scripts/enable-camel.sh`, OperatorHub `red-hat-camel-k`) |
 | **Red Hat OpenShift GitOps** (Argo CD) | Install path: `bash scripts/enable-gitops.sh` (app-of-apps under `gitops/`). Tekton/KFP still run the model promotion. |
 | **Red Hat OpenShift Web Terminal** | Optional: `oc apply -f manifests/web-terminal-subscription.yaml` — in-console `oc`/`curl` (console header terminal icon). |
 | **Red Hat OpenShift AI** (KServe) | `ServingRuntime` + `InferenceService` for `churn-score` (CPU) |
@@ -158,19 +157,19 @@ Optional IDE on a cluster with spare pod capacity (OperatorHub `devspaces` chann
 bash scripts/enable-devspaces.sh
 ```
 
-### 5c. Camel K bridge (Spark-shaped JSON → /predict)
+### 5c. Integration flow (Spark-shaped JSON → /predict)
 
-Optional **Red Hat Integration - Camel K** route that accepts an enterprise / batch-shaped record and maps it to the same body the predictor expects. **No Apache Spark cluster** — the README still treats Spark ML *inside* the serving pod as impractical; this is only the integration path.
+Optional [OpenShift Integration Operator](https://maximilianopizarro.github.io/openshift-integration-operator/) **Quick Try** flow (`IntegrationFlow`, `deploymentMode: EPHEMERAL`). It accepts an enterprise / batch-shaped record and maps it to the same body the predictor expects. **No Apache Spark cluster** and no Camel K build — the worker is the precompiled image `camel-worker-http:v0.8.2`. OperatorHub marks Red Hat Integration - Camel K obsolete on this cluster; this flow replaces that path.
 
-GitOps can install the operator (`gitops/apps/camel-operator.yaml`). The `Integration` is **not** in the root kustomization (needs the Camel CRD). On every cluster:
+The operator is **not** an Argo application. The chart's default install also starts Kaoto, a console plugin, and an OpenTelemetry collector; `enable-integration.sh` leaves those off so a 1-node sandbox can fit the operator plus one worker. The flow is not in the root kustomization (the CRD appears only after the operator starts). On every cluster:
 
 ```bash
-bash scripts/enable-camel.sh
+bash scripts/enable-integration.sh
 ```
 
-That waits for CSV `red-hat-camel-k`, then applies `manifests/camel/` (`IntegrationPlatform`, `churn-score-bridge`, NetworkPolicy, Route `churn-camel`). If the node has fewer than ~3 free pod slots, the script leaves the operator installed and skips the Integration.
+That installs chart `openshift-integration-operator` 0.8.2 into `openshift-integration`, then applies `manifests/integration/` (`churn-score-bridge`, NetworkPolicy, Route `churn-camel`). TTL is 8 hours. If the node has fewer than 2 free pod slots, the script does not start the operator.
 
-Same model as Route `inference` `/predict`. From Web Terminal use the Camel **Route** (ingress is allowed; in-namespace Service from another project is blocked by NetworkPolicy):
+Same model as Route `inference` `/predict`. From Web Terminal use Route `churn-camel` (ingress is allowed; a Service in `ocp-datalake` from another project is blocked by NetworkPolicy):
 
 ```bash
 CAMEL="$(oc get route churn-camel -n ocp-datalake -o jsonpath='{.spec.host}')"
@@ -236,7 +235,6 @@ That installs the OpenShift GitOps operator (channel `latest`) and syncs:
 | `ocp-datalake-maas-postgres` | API-key DB (password via PreSync Job, not git) | 2 |
 | `ocp-datalake-maas-simulator` | CPU `LLMInferenceService` + MaaS CRs | 3 |
 | `ocp-datalake-devspaces-operator` | Dev Spaces Subscription (`stable`) | 0 |
-| `ocp-datalake-camel-operator` | Camel K Subscription (`red-hat-camel-k` / `1.10.x`); Integration via `enable-camel.sh` | 0 |
 
 `prune` is off. Do not point this at a cluster where you need Argo to delete unused objects. On a **new** install you still need OpenShift, OpenShift AI 3.5, and OpenShift Pipelines already present. After the first GitOps sync, run `bash scripts/enable-workbench.sh` so ConfigMap `workbench-demo-env` gets the live `maas.<apps-domain>`. Change the Gateway hostname in git before the first sync if the apps domain is not this sandbox.
 
@@ -305,7 +303,7 @@ The OpenShift pieces (KServe, RHBK, Tekton/KFP, quota, NetworkPolicy) are the ha
 | --- | --- | --- |
 | Notebooks / workspace | OpenShift AI workbenches (`ocp-datalake-demo`, CPU) + Dev Spaces | — |
 | Jobs / Workflows | OpenShift Pipelines, Data Science Pipelines | Argo Workflows; GitOps does not run training |
-| Integration / transform | Camel K `churn-score-bridge` (Spark-shaped JSON → `/predict`) | No Spark cluster in this PoC |
+| Integration / transform | Ephemeral `IntegrationFlow` `churn-score-bridge` (Spark-shaped JSON → `/predict`) | [OpenShift Integration Operator](https://maximilianopizarro.github.io/openshift-integration-operator/) v0.8.2. No Spark cluster |
 | MLflow Tracking | KFP / DSPA run metadata | Self-hosted MLflow; no RH tracking product |
 | Model Registry + UC models | OpenShift AI Model Registry (`ocp-datalake-registry`) | UC grants stay on Databricks; pull via `databricks-uc` |
 | Unity Catalog | RBAC + GitOps + Model Registry | OpenLineage/Marquez; **no full UC equivalent** |
@@ -381,11 +379,11 @@ manifests/maas/             Connectivity Link, Gateway, Postgres, CPU simulator 
 manifests/registry/         Model Registry instance + pipeline RBAC (Argo app)
 manifests/workbench/        Notebook CR + PVC (HardwareProfile default-profile)
 manifests/devspaces/        Dev Spaces operator Subscription + CheCluster
-manifests/camel/            Camel K operator Subscription + churn-score-bridge Integration (opt-in)
+manifests/integration/     Ephemeral IntegrationFlow churn-score-bridge (opt-in, enable-integration.sh)
 notebooks/                  ocp-datalake-demo.ipynb (/predict + MaaS chat)
 gitops/                     OpenShift GitOps operator + Argo CD app-of-apps
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
-scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, enable-camel.sh, maas-usage-load.sh
+scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, enable-integration.sh, maas-usage-load.sh
 docs/                       GitHub Pages site (journey + screenshots)
 docs/assets/diagrams/       architecture and journey SVGs
 docs/assets/screenshots/    live OpenShift and OpenShift AI captures

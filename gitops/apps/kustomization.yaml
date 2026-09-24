@@ -11,4 +11,3 @@ resources:
   - maas-postgres.yaml
   - maas-simulator.yaml
   - devspaces-operator.yaml
-  - camel-operator.yaml

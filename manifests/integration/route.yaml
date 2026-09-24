@@ -1,3 +1,4 @@
+# First port on Service iflow-churn-score-bridge is 8080 (unnamed). Leave spec.port unset.
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -9,10 +10,8 @@ metadata:
 spec:
   to:
     kind: Service
-    name: churn-score-bridge
+    name: iflow-churn-score-bridge
     weight: 100
-  port:
-    targetPort: http
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect

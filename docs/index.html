@@ -368,7 +368,7 @@
           <figcaption>
             <span class="slide-num">Step 35</span>
             <strong>OpenShift GitOps</strong>
-            <span class="desc">App of apps under <code>gitops/</code>. Applications: churn-score (includes the CPU workbench), Model Registry, MaaS layers, Dev Spaces operator, Camel K operator. <code>CheCluster</code> and the Camel <code>Integration</code> are opt-in (<code>bash scripts/enable-devspaces.sh</code>, <code>bash scripts/enable-camel.sh</code>) so a 1-node sandbox does not exhaust kubelet pod density. <code>prune</code> is off. Install: <code>bash scripts/enable-gitops.sh</code>.</span>
+            <span class="desc">App of apps under <code>gitops/</code>. Applications: churn-score (includes the CPU workbench), Model Registry, MaaS layers, Dev Spaces operator. <code>CheCluster</code> and the churn-score <code>IntegrationFlow</code> are opt-in (<code>bash scripts/enable-devspaces.sh</code>, <code>bash scripts/enable-integration.sh</code>) so a 1-node sandbox does not exhaust kubelet pod density. <code>prune</code> is off. Install: <code>bash scripts/enable-gitops.sh</code>.</span>
           </figcaption>
         </figure>
 
@@ -476,7 +476,7 @@ curl -sk "$MAAS_URL/v1/chat/completions" \
         <tbody>
           <tr><td>Notebooks / workspace</td><td>OpenShift AI workbench <code>ocp-datalake-demo</code> (CPU <code>default-profile</code>)</td><td>OpenShift AI workbenches, OpenShift Dev Spaces</td><td>—</td><td>No GPU on the workbench. The L4 stays on Llama. Example notebook calls <code>/predict</code> and MaaS chat.</td></tr>
           <tr><td>Jobs / Workflows</td><td>Tekton + KFP promotion only</td><td>OpenShift Pipelines, Data Science Pipelines</td><td>Argo Workflows</td><td>GitOps installs; it does not run training jobs.</td></tr>
-          <tr><td>Integration / transform</td><td>Camel K <code>churn-score-bridge</code> (opt-in)</td><td>Red Hat Integration - Camel K</td><td>—</td><td>Spark-shaped JSON → <code>/predict</code>. No Spark cluster; same <code>churn-score</code> model.</td></tr>
+          <tr><td>Integration / transform</td><td>Ephemeral <code>IntegrationFlow</code> <code>churn-score-bridge</code> (opt-in)</td><td>—</td><td><a href="https://maximilianopizarro.github.io/openshift-integration-operator/">OpenShift Integration Operator</a> v0.8.2</td><td>Spark-shaped JSON → <code>/predict</code>. Precompiled HTTP worker, no Spark cluster; same <code>churn-score</code> model.</td></tr>
           <tr><td>MLflow Tracking</td><td>Not connected</td><td>KFP run metadata, DSPA history (dev MinIO here)</td><td>Self-hosted MLflow Tracking server</td><td>No Red Hat–branded MLflow Tracking product.</td></tr>
           <tr><td>Model Registry (legacy + UC models)</td><td>PVC + RHOAI <code>ocp-datalake-registry</code></td><td>OpenShift AI Model Registry</td><td>MLflow Registry (if self-hosted)</td><td>UC grants and <code>databricks-uc</code> URI are on the Databricks side.</td></tr>
           <tr><td>Unity Catalog</td><td>Simulated naming only</td><td>OpenShift RBAC, GitOps, Model Registry</td><td>OpenLineage/Marquez, OpenMetadata</td><td><strong>No full UC equivalent.</strong> Lineage is separate tooling.</td></tr>

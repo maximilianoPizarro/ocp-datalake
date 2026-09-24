@@ -1,0 +1,41 @@
+# Ephemeral Quick Try flow (OpenShift Integration Operator).
+# Spark-shaped record -> churn-score /predict. No Spark cluster, no Camel K build.
+# Input:  {"customer_id":"C-1001","source":"spark-batch","features":{"account_tenure_months":12,"monthly_charges":70,"open_support_tickets":3}}
+# Output: same body as POST http://inference.ocp-datalake.svc:4180/predict
+apiVersion: platform.io/v1alpha1
+kind: IntegrationFlow
+metadata:
+  name: churn-score-bridge
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/name: churn-score-bridge
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  deploymentMode: EPHEMERAL
+  engine: CAMEL
+  integrationType: CAMEL_ROUTE
+  ephemeral:
+    ttlSeconds: 28800
+    workerImage: quay.io/maximilianopizarro/camel-worker-http:v0.8.2
+  targeting:
+    strategy: explicit
+    clusters:
+      - local
+  kaotoDesign: |
+    - route:
+        id: churn-score-bridge
+        from:
+          uri: "platform-http:/score?httpMethodRestrict=POST"
+          steps:
+            - unmarshal:
+                json: {}
+            - setBody:
+                simple: '{"tenure":${body[features][account_tenure_months]},"charges":${body[features][monthly_charges]},"support_tickets":${body[features][open_support_tickets]}}'
+            - setHeader:
+                name: Content-Type
+                constant: application/json
+            - setHeader:
+                name: CamelHttpMethod
+                constant: POST
+            - to:
+                uri: "http://inference.ocp-datalake.svc:4180/predict?bridgeEndpoint=true"

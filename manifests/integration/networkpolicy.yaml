@@ -1,9 +1,9 @@
-# Web Terminal and other namespaces cannot reach Services here (same as inference).
-# Clients use Route churn-camel; OpenShift ingress is allowed.
+# Web Terminal runs in another project, so it must use Route churn-camel.
+# The worker Service is iflow-churn-score-bridge:8080 (created by the operator).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: camel-churn-score-bridge-ingress
+  name: churn-score-bridge-ingress
   namespace: ocp-datalake
   labels:
     app.kubernetes.io/name: churn-score-bridge
@@ -11,7 +11,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      camel.apache.org/integration: churn-score-bridge
+      platform.io/flow-name: churn-score-bridge
   policyTypes:
     - Ingress
   ingress:
@@ -23,5 +23,3 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-        - protocol: TCP
-          port: 80
