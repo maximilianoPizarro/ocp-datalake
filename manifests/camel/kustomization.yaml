@@ -1,0 +1,14 @@
+# Applied by scripts/enable-camel.sh after the Camel K operator is ready.
+# Not included in the repo-root kustomization (needs Integration CRD).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ocp-datalake
+resources:
+  - integrationplatform.yaml
+  - integration.yaml
+  - networkpolicy.yaml
+  - route.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: ocp-datalake
+    includeSelectors: false
