@@ -1,0 +1,35 @@
+# Example PipelineRun. Prefer: bash scripts/run-spark-java-churn.sh
+# Default git-url="" builds from ConfigMap spark-churn-java-src (synced by GitOps).
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: spark-java-churn-
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  pipelineRef:
+    name: spark-java-churn
+  taskRunTemplate:
+    serviceAccountName: pipeline
+  timeouts:
+    pipeline: 30m
+  params:
+    - name: git-url
+      value: ""
+    - name: git-revision
+      value: main
+    - name: image-tag
+      value: latest
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        metadata:
+          labels:
+            app.kubernetes.io/part-of: ocp-datalake
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

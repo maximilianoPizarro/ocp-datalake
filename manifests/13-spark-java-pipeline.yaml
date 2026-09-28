@@ -1,0 +1,366 @@
+# Tekton: build custom Spark Java churn JAR image, then run SparkApplication.
+# Sources: ConfigMap spark-churn-java-src (default) or git-clone when git-url is set.
+# SparkApplication is applied here (not by Argo).
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-java-pipeline
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+rules:
+  - apiGroups: ["spark.stackable.tech"]
+    resources: ["sparkapplications"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "serviceaccounts"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["image.openshift.io"]
+    resources: ["imagestreams", "imagestreamtags"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spark-java-pipeline
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: spark-java-pipeline
+subjects:
+  - kind: ServiceAccount
+    name: pipeline
+    namespace: ocp-datalake
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: spark-java-from-configmap
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  description: Materialize apps/spark-churn-java sources from ConfigMap spark-churn-java-src.
+  workspaces:
+    - name: source
+  volumes:
+    - name: src
+      configMap:
+        name: spark-churn-java-src
+  steps:
+    - name: materialize
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      imagePullPolicy: IfNotPresent
+      computeResources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+      volumeMounts:
+        - name: src
+          mountPath: /cm
+          readOnly: true
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        dest="$(workspaces.source.path)/apps/spark-churn-java"
+        mkdir -p "${dest}/src/main/java/com/ocpdatalake/spark"
+        cp /cm/pom.xml "${dest}/pom.xml"
+        cp /cm/Dockerfile "${dest}/Dockerfile"
+        cp /cm/ChurnScoreJob.java "${dest}/src/main/java/com/ocpdatalake/spark/ChurnScoreJob.java"
+        # Manifests for the apply step (application only; RBAC/IS applied by the runner script / GitOps).
+        mkdir -p "$(workspaces.source.path)/manifests/spark-java-churn"
+        if [ -f /cm/application.yaml ]; then
+          cp /cm/application.yaml "$(workspaces.source.path)/manifests/spark-java-churn/application.yaml"
+        fi
+        echo "materialized ${dest}"
+        find "$(workspaces.source.path)" -type f | sort
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: spark-java-maven
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  description: Maven package for apps/spark-churn-java (higher memory than the cluster maven Task).
+  params:
+    - name: SUBDIRECTORY
+      type: string
+      default: apps/spark-churn-java
+  workspaces:
+    - name: source
+  steps:
+    - name: mvn
+      image: registry.redhat.io/ubi9/openjdk-17:latest
+      imagePullPolicy: IfNotPresent
+      workingDir: $(workspaces.source.path)/$(params.SUBDIRECTORY)
+      computeResources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: "2"
+          memory: 4Gi
+      env:
+        - name: MAVEN_OPTS
+          value: "-Xmx2g"
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        echo "building in $(pwd)"
+        ls -la
+        mvn -B -DskipTests package
+        ls -la target/
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: spark-java-run
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  description: Apply SparkApplication spark-java-churn-score and wait for PREDICT_RESPONSE.
+  params:
+    - name: namespace
+      type: string
+      default: ocp-datalake
+    - name: app-name
+      type: string
+      default: spark-java-churn-score
+  steps:
+    - name: run
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      imagePullPolicy: IfNotPresent
+      computeResources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 256Mi
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        NS="$(params.namespace)"
+        APP="$(params.app-name)"
+        IMAGE="image-registry.openshift-image-registry.svc:5000/${NS}/spark-churn-java:latest"
+
+        if ! oc get svc inference -n "${NS}" >/dev/null 2>&1; then
+          echo "missing Service inference in ${NS}" >&2
+          exit 1
+        fi
+        # pipeline SA cannot list cluster CRDs; probe the namespaced API instead.
+        if ! oc get sparkapplication -n "${NS}" >/dev/null 2>&1; then
+          echo "SparkApplication API not available in ${NS} (install Stackable spark operator)" >&2
+          exit 1
+        fi
+        if ! oc get imagestream spark-churn-java -n "${NS}" >/dev/null 2>&1; then
+          echo "missing ImageStream spark-churn-java" >&2
+          exit 1
+        fi
+
+        echo "==> delete previous SparkApplication ${APP} (if any)"
+        oc delete sparkapplication "${APP}" -n "${NS}" --ignore-not-found --wait=true
+        for _ in $(seq 1 30); do
+          LEFT="$(oc get pods -n "${NS}" -l "app.kubernetes.io/instance=${APP}" --no-headers 2>/dev/null | wc -l | tr -d ' ')"
+          if [ "${LEFT}" = "0" ]; then
+            break
+          fi
+          sleep 2
+        done
+
+        echo "==> apply SparkApplication ${APP} image=${IMAGE}"
+        cat <<EOF | oc apply -f -
+        apiVersion: spark.stackable.tech/v1alpha1
+        kind: SparkApplication
+        metadata:
+          name: ${APP}
+          namespace: ${NS}
+          labels:
+            app.kubernetes.io/name: ${APP}
+            app.kubernetes.io/part-of: ocp-datalake
+        spec:
+          sparkImage:
+            custom: ${IMAGE}
+            productVersion: "3.5.8"
+            pullPolicy: Always
+          mode: cluster
+          mainClass: com.ocpdatalake.spark.ChurnScoreJob
+          mainApplicationFile: local:///stackable/spark/jobs/churn-score.jar
+          env:
+            - name: PREDICT_URL
+              value: "http://inference.ocp-datalake.svc:4180/predict"
+          job:
+            config:
+              resources:
+                cpu:
+                  min: "250m"
+                  max: "1"
+                memory:
+                  limit: "1Gi"
+          driver:
+            config:
+              resources:
+                cpu:
+                  min: "250m"
+                  max: "1"
+                memory:
+                  limit: "1Gi"
+          executor:
+            replicas: 1
+            config:
+              resources:
+                cpu:
+                  min: "250m"
+                  max: "1"
+                memory:
+                  limit: "1Gi"
+        EOF
+
+        echo "    waiting for driver..."
+        LOG_FILE="$(mktemp)"
+        DRIVER=""
+        for _ in $(seq 1 120); do
+          DRIVER="$(oc get pods -n "${NS}" -l "app.kubernetes.io/instance=${APP},spark-role=driver" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+          if [ -n "${DRIVER}" ]; then
+            break
+          fi
+          CR_PHASE="$(oc get sparkapplication "${APP}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+          if [ "${CR_PHASE}" = "Failed" ]; then
+            echo "SparkApplication Failed" >&2
+            oc get sparkapplication "${APP}" -n "${NS}" -o yaml | tail -80 || true
+            exit 1
+          fi
+          sleep 5
+        done
+        if [ -z "${DRIVER}" ]; then
+          echo "driver pod did not appear" >&2
+          oc get sparkapplication "${APP}" -n "${NS}" -o yaml | tail -80 || true
+          oc get pods -n "${NS}" | grep -i spark || true
+          exit 1
+        fi
+
+        echo "    driver=${DRIVER}"
+        # Wait until the container is running so the first log follow does not race.
+        oc wait --for=condition=Ready pod/"${DRIVER}" -n "${NS}" --timeout=180s || true
+        oc logs -n "${NS}" -f "${DRIVER}" 2>/dev/null | tee "${LOG_FILE}" || true
+        PHASE="$(oc get pod "${DRIVER}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo Succeeded)"
+        echo "    driver phase=${PHASE}"
+        if [ "${PHASE}" = "Failed" ]; then
+          echo "Spark driver failed" >&2
+          cat "${LOG_FILE}" >&2 || true
+          exit 1
+        fi
+        grep -q 'PREDICT_RESPONSE' "${LOG_FILE}" || {
+          echo "expected PREDICT_RESPONSE in driver log" >&2
+          cat "${LOG_FILE}" >&2
+          exit 1
+        }
+        echo "==> ok: Java Spark churn scored via /predict"
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: spark-java-churn
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  description: Maven-build custom Spark Java job, push image, run Stackable SparkApplication.
+  params:
+    - name: git-url
+      type: string
+      description: Git repo URL. Empty uses ConfigMap spark-churn-java-src (GitOps).
+      default: ""
+    - name: git-revision
+      type: string
+      default: main
+    - name: image-tag
+      type: string
+      default: latest
+  workspaces:
+    - name: source
+  tasks:
+    - name: clone
+      when:
+        - input: $(params.git-url)
+          operator: notin
+          values: [""]
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone
+          - name: namespace
+            value: openshift-pipelines
+      params:
+        - name: URL
+          value: $(params.git-url)
+        - name: REVISION
+          value: $(params.git-revision)
+        - name: DEPTH
+          value: "1"
+      workspaces:
+        - name: output
+          workspace: source
+    - name: from-configmap
+      when:
+        - input: $(params.git-url)
+          operator: in
+          values: [""]
+      taskRef:
+        kind: Task
+        name: spark-java-from-configmap
+      workspaces:
+        - name: source
+          workspace: source
+    - name: maven
+      runAfter: ["clone", "from-configmap"]
+      taskRef:
+        kind: Task
+        name: spark-java-maven
+      params:
+        - name: SUBDIRECTORY
+          value: apps/spark-churn-java
+      workspaces:
+        - name: source
+          workspace: source
+    - name: image
+      runAfter: ["maven"]
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: buildah
+          - name: namespace
+            value: openshift-pipelines
+      params:
+        - name: IMAGE
+          value: image-registry.openshift-image-registry.svc:5000/ocp-datalake/spark-churn-java:$(params.image-tag)
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: CONTEXT
+          value: apps/spark-churn-java
+        - name: TLS_VERIFY
+          value: "false"
+      workspaces:
+        - name: source
+          workspace: source
+    - name: run
+      runAfter: ["image"]
+      taskRef:
+        kind: Task
+        name: spark-java-run

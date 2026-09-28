@@ -1,0 +1,47 @@
+# Stackable SparkApplication: Java SparkPi from the image's spark-examples JAR.
+# Opt-in via scripts/run-spark-pi.sh. Does not replace the Python jobs.
+# JAR confirmed in productVersion 3.5.8 (stackable26.7.0): spark-examples.jar
+# is the stable name; the versioned file is spark-examples_2.12-3.5.8-stackable26.7.0.jar.
+apiVersion: spark.stackable.tech/v1alpha1
+kind: SparkApplication
+metadata:
+  name: spark-pi
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/name: spark-pi
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  sparkImage:
+    productVersion: "3.5.8"
+  mode: cluster
+  mainClass: org.apache.spark.examples.SparkPi
+  mainApplicationFile: local:///stackable/spark/examples/jars/spark-examples.jar
+  args:
+    - "10"
+  # 1Gi matches the Python jobs. Stackable keeps ~384Mi for overhead, so the
+  # Spark heap is ~640Mi, above the 450Mi minimum.
+  job:
+    config:
+      resources:
+        cpu:
+          min: "250m"
+          max: "1"
+        memory:
+          limit: "1Gi"
+  driver:
+    config:
+      resources:
+        cpu:
+          min: "250m"
+          max: "1"
+        memory:
+          limit: "1Gi"
+  executor:
+    replicas: 1
+    config:
+      resources:
+        cpu:
+          min: "250m"
+          max: "1"
+        memory:
+          limit: "1Gi"

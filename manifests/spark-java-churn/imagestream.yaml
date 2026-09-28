@@ -1,0 +1,12 @@
+# Destination for Tekton buildah push. SparkApplication pulls :latest from here.
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: spark-churn-java
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/name: spark-churn-java
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  lookupPolicy:
+    local: true

@@ -1,0 +1,17 @@
+# OpenShift SCC for the ServiceAccount Stackable creates (same name as the
+# SparkApplication). Same pattern as the Python jobs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spark-pi-anyuid
+  labels:
+    app.kubernetes.io/name: spark-pi
+    app.kubernetes.io/part-of: ocp-datalake
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid
+subjects:
+  - kind: ServiceAccount
+    name: spark-pi
+    namespace: ocp-datalake

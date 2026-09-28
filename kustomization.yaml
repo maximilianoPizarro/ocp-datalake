@@ -15,6 +15,9 @@ resources:
   - manifests/10-dspa.yaml
   - manifests/10b-dspa-minio-netpol.yaml
   - manifests/12-kfp-pipeline.yaml
+  - manifests/13-spark-java-pipeline.yaml
+  - manifests/spark-java-churn/imagestream.yaml
+  - manifests/spark-java-churn/rbac.yaml
   - manifests/workbench
 configMapGenerator:
   - name: inference-src
@@ -32,6 +35,12 @@ configMapGenerator:
   - name: workbench-demo-notebook
     files:
       - ocp-datalake-demo.ipynb=notebooks/ocp-datalake-demo.ipynb
+  - name: spark-churn-java-src
+    files:
+      - pom.xml=apps/spark-churn-java/pom.xml
+      - Dockerfile=apps/spark-churn-java/Dockerfile
+      - ChurnScoreJob.java=apps/spark-churn-java/src/main/java/com/ocpdatalake/spark/ChurnScoreJob.java
+      - application.yaml=manifests/spark-java-churn/application.yaml
 generatorOptions:
   disableNameSuffixHash: true
 labels:

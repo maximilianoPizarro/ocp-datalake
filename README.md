@@ -182,7 +182,27 @@ To leave the driver and executor `Running` after the score (Stackable deletes th
 SPARK_HOLD_SECONDS=1500 bash scripts/run-spark-score.sh
 ```
 
-Quota headroom in `ocp-datalake`: job + driver + 1 executor (~3 pods, ~1 Gi memory limit each).
+Quota headroom in `ocp-datalake`: each SparkApplication is job + driver + 1 executor (~3 pods, 1 Gi memory request each). `requests.memory` is 14Gi so the Python streaming job and another SparkApplication (batch score, Java SparkPi, or Tekton Java churn) can run together. `persistentvolumeclaims` is 8 so Tekton workspace PVCs fit beside DSPA/registry/workbench.
+
+### 5c-java. Apache Spark (Stackable) Java SparkPi
+
+Same operator and image as the Python jobs. This one does not call `/predict` or Kafka. `mainClass` is `org.apache.spark.examples.SparkPi` and the JAR is the one already in the 3.5.8 image (`spark-examples.jar`).
+
+```bash
+bash scripts/run-spark-pi.sh
+```
+
+That applies `manifests/spark-java/` (SCC `anyuid` for ServiceAccount `spark-pi`, then `SparkApplication` `spark-pi`). Memory is 1 Gi per pod, same as the Python jobs. The driver log must contain `Pi is roughly`. It only deletes a previous `spark-pi`. The Python applications stay.
+
+### 5c-java-churn. Custom Spark Java + Tekton → /predict
+
+Same Stackable operator, but the job JAR is yours: `apps/spark-churn-java` (Maven, `ChurnScoreJob`, parity with `score.py`). OpenShift Pipelines builds the image and runs the job:
+
+```bash
+bash scripts/run-spark-java-churn.sh
+```
+
+Flow: ConfigMap `spark-churn-java-src` (or `GIT_URL=...` to clone) → Maven `package` → Buildah push to ImageStream `spark-churn-java` → `SparkApplication` `spark-java-churn-score` → driver log `PREDICT_RESPONSE` with `churn: true`. Pipeline/Task/ImageStream/SCC live in GitOps; the SparkApplication is applied by Tekton only (not Argo). Does not delete the Python apps or `spark-pi`.
 
 ### 5d. Streams for Apache Kafka → Spark → /predict
 
@@ -315,6 +335,8 @@ The OpenShift pieces (KServe, RHBK, Tekton/KFP, quota, NetworkPolicy) are the ha
 | Notebooks / workspace | OpenShift AI workbenches (`ocp-datalake-demo`, CPU) + Dev Spaces | — |
 | Jobs / Workflows | OpenShift Pipelines, Data Science Pipelines | Argo Workflows; GitOps does not run training |
 | Apache Spark batch | One-shot `SparkApplication` `spark-to-churn-score` (`scripts/run-spark-score.sh`) | [Stackable Spark operator](https://docs.stackable.tech/home/stable/spark-k8s/) (commons + secret + listener + spark), productVersion 3.5.8 |
+| Apache Spark Java | One-shot `SparkApplication` `spark-pi` (`scripts/run-spark-pi.sh`) | Same operator; `org.apache.spark.examples.SparkPi` from the image JAR |
+| Apache Spark Java custom | Tekton `spark-java-churn` → `SparkApplication` `spark-java-churn-score` (`scripts/run-spark-java-churn.sh`) | Maven job in `apps/spark-churn-java` → ImageStream → `/predict` |
 | Streams for Apache Kafka | Single-node KRaft `churn` + Console + topic `churn-events` | [Streams for Apache Kafka](https://docs.redhat.com/en/documentation/red_hat_streams_for_apache_kafka/) (`amq-streams` + `amq-streams-console` packages) |
 | Spark ← Kafka | Streaming `SparkApplication` `spark-from-kafka-churn` (`scripts/run-spark-kafka.sh`) | Stackable Spark + `spark-sql-kafka` → `/predict` |
 | MLflow Tracking | KFP / DSPA run metadata | Self-hosted MLflow; no RH tracking product |
@@ -397,13 +419,16 @@ manifests/workbench/        Notebook CR + PVC (HardwareProfile default-profile)
 manifests/devspaces/        Dev Spaces operator Subscription + CheCluster
 manifests/stackable/        OperatorHub Subscriptions (commons, secret, listener, spark)
 manifests/spark/            Spark kustomize bundle (SCC, ConfigMap from score.py, SparkApplication; opt-in via run-spark-score.sh)
+manifests/spark-java/       Java SparkPi on the same Stackable operator (opt-in via run-spark-pi.sh)
+manifests/spark-java-churn/ ImageStream + SCC for custom Java churn (SparkApplication applied by Tekton)
+apps/spark-churn-java/      Maven Spark job + Dockerfile (Tekton build input)
 manifests/streams-kafka/    Streams for Apache Kafka operators + cluster + Console CR
 manifests/spark-kafka/      Spark streaming consumer of churn-events (opt-in via run-spark-kafka.sh)
 manifests/kubelet/          KubeletConfig maxPods 500 (single control-plane node)
 notebooks/                  ocp-datalake-demo.ipynb (/predict + MaaS chat)
 gitops/                     OpenShift GitOps operator + Argo CD app-of-apps
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
-scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, enable-streams-kafka.sh, run-spark-score.sh, run-spark-kafka.sh, maas-usage-load.sh
+scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, enable-streams-kafka.sh, run-spark-score.sh, run-spark-pi.sh, run-spark-java-churn.sh, run-spark-kafka.sh, maas-usage-load.sh
 docs/                       GitHub Pages site (journey + screenshots)
 docs/assets/diagrams/       architecture and journey SVGs
 docs/assets/screenshots/    live OpenShift and OpenShift AI captures

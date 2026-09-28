@@ -1,0 +1,47 @@
+# Stackable SparkApplication: custom Java churn batch (built by Tekton).
+# Opt-in via scripts/run-spark-java-churn.sh. Not an Argo app (re-fires).
+# Image: ImageStream spark-churn-java (JAR at /stackable/spark/jobs/churn-score.jar).
+apiVersion: spark.stackable.tech/v1alpha1
+kind: SparkApplication
+metadata:
+  name: spark-java-churn-score
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/name: spark-java-churn-score
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  sparkImage:
+    custom: image-registry.openshift-image-registry.svc:5000/ocp-datalake/spark-churn-java:latest
+    productVersion: "3.5.8"
+    pullPolicy: Always
+  mode: cluster
+  mainClass: com.ocpdatalake.spark.ChurnScoreJob
+  mainApplicationFile: local:///stackable/spark/jobs/churn-score.jar
+  env:
+    - name: PREDICT_URL
+      value: "http://inference.ocp-datalake.svc:4180/predict"
+  job:
+    config:
+      resources:
+        cpu:
+          min: "250m"
+          max: "1"
+        memory:
+          limit: "1Gi"
+  driver:
+    config:
+      resources:
+        cpu:
+          min: "250m"
+          max: "1"
+        memory:
+          limit: "1Gi"
+  executor:
+    replicas: 1
+    config:
+      resources:
+        cpu:
+          min: "250m"
+          max: "1"
+        memory:
+          limit: "1Gi"
