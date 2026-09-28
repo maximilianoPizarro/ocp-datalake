@@ -7,6 +7,8 @@ in-cluster inference gateway. Expected: churn true, probability ~0.5987.
 from __future__ import annotations
 
 import json
+import os
+import time
 import urllib.error
 import urllib.request
 
@@ -63,6 +65,13 @@ def main() -> None:
             print(f"PREDICT_HTTP={exc.code}", flush=True)
             print(f"PREDICT_RESPONSE={err}", flush=True)
             raise
+
+    # SPARK_HOLD_SECONDS keeps the driver and executor Running after the score
+    # so a console capture can show the pods. Default 0 exits immediately.
+    hold = int(os.environ.get("SPARK_HOLD_SECONDS", "0") or "0")
+    if hold > 0:
+        print(f"SPARK_HOLD_SECONDS={hold}", flush=True)
+        time.sleep(hold)
 
     spark.stop()
 

@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spark-from-kafka-churn-anyuid
+  labels:
+    app.kubernetes.io/name: spark-from-kafka-churn
+    app.kubernetes.io/part-of: ocp-datalake
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid
+subjects:
+  - kind: ServiceAccount
+    name: spark-from-kafka-churn
+    namespace: ocp-datalake

@@ -1,0 +1,68 @@
+# Single-node KRaft for this one-node sandbox. Adapted from
+# maximilianoPizarro/field-sourced-content-template
+# charts/all/cdc-pipeline/templates/kafka.yaml (3 brokers → 1, RF=1).
+# Plain listener has no auth so Stackable Spark can subscribe in-cluster.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  namespace: kafka
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: streams-kafka
+    strimzi.io/cluster: churn
+spec:
+  replicas: 1
+  roles:
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        kraftMetadata: shared
+        type: persistent-claim
+        size: 10Gi
+        class: gp3-csi
+        deleteClaim: false
+  resources:
+    requests:
+      cpu: 200m
+      memory: 1Gi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: churn
+  namespace: kafka
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: streams-kafka
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: scram-sha-512
+    config:
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      default.replication.factor: 1
+      min.insync.replicas: 1
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}

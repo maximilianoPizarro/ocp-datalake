@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Spark pods running</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 1448px;
+      height: 954px;
+      background: #0e1014;
+      color: #e6e8ee;
+      font-family: "Red Hat Mono", "IBM Plex Mono", Consolas, ui-monospace, monospace;
+    }
+    .wrap { box-sizing: border-box; height: 954px; padding: 42px 52px 36px; }
+    header { display: flex; justify-content: space-between; align-items: center; }
+    h1 {
+      margin: 0;
+      color: #3dcec8;
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: 0.06em;
+    }
+    .badge {
+      border: 1px solid #3a4150;
+      border-radius: 999px;
+      padding: 8px 16px;
+      color: #c5cad3;
+      font-size: 15px;
+    }
+    .panel {
+      margin-top: 26px;
+      background: #1c2028;
+      border: 1px solid #2c323d;
+      border-radius: 16px;
+      padding: 26px 30px 22px;
+    }
+    .label {
+      color: #e06a5c;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      margin: 0 0 14px;
+    }
+    pre {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.55;
+      white-space: pre;
+    }
+    .cmd { color: #9aa3b2; }
+    .prompt { color: #7d8ea3; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>WEB TERMINAL · STACKABLE SPARK</h1>
+      <div class="badge">oc · namespace ocp-datalake</div>
+    </header>
+    <section class="panel">
+      <p class="label">PODS WHILE THE SCORE IS HELD</p>
+      <pre><span class="prompt">~</span> <span class="cmd">$ oc get pods -n ocp-datalake -l app.kubernetes.io/instance=spark-to-churn-score -L spark-role</span>
+NAME                                           READY   STATUS    RESTARTS   AGE     SPARK-ROLE
+spark-to-churn-score-4595g                     1/1     Running   0          2m57s
+spark-to-churn-score-5007b2a0e91a75cc-driver   1/1     Running   0          2m50s   driver
+spark-to-churn-score-578d4ca0e91a95c3-exec-1   1/1     Running   0          2m42s   executor</pre>
+    </section>
+    <section class="panel">
+      <p class="label">DRIVER LOG AFTER POST /predict</p>
+      <pre>SPARK_VERSION=3.5.8-stackable26.7.0
+PREDICT_RESPONSE={"model": "churn-score", "version": "1", "source": "databricks-mlflow", "probability": 0.5987, "churn": true}
+SPARK_HOLD_SECONDS=1500</pre>
+    </section>
+  </div>
+</body>
+</html>

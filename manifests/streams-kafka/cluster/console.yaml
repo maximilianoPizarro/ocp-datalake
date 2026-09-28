@@ -1,0 +1,17 @@
+# Official Streams for Apache Kafka Console (StreamsHub). Not community kafka-ui.
+# Pattern: field-sourced-content-template charts/all/cdc-pipeline/templates/kafka-console.yaml
+# Hostname rebound by scripts/enable-streams-kafka.sh (apps domain rotates).
+apiVersion: console.streamshub.github.com/v1alpha1
+kind: Console
+metadata:
+  name: kafka-console
+  namespace: kafka
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: streams-kafka-console
+spec:
+  hostname: kafka-console.apps.ocp.ljtfk.sandbox5295.opentlc.com
+  kafkaClusters:
+    - name: churn
+      namespace: kafka
+      listener: plain

@@ -364,9 +364,18 @@
         </figure>
 
         <figure class="journey-slide" hidden>
-          <img src="assets/screenshots/25-gitops-apps.png" alt="OpenShift GitOps Applications all Synced and Healthy" width="1448" height="954">
+          <img src="assets/screenshots/35-spark-running.png" alt="Stackable Spark driver and executor Running in ocp-datalake after scoring churn true" width="1448" height="954">
           <figcaption>
             <span class="slide-num">Step 35</span>
+            <strong>Stackable Spark · pods Running</strong>
+            <span class="desc">One-shot <code>SparkApplication</code> <code>spark-to-churn-score</code> (Apache Spark 3.5.8). Driver and executor stay <code>Running</code> only while <code>SPARK_HOLD_SECONDS</code> sleeps after <code>POST /predict</code>. This capture is that window: churn true, probability 0.5987. Replay with <code>SPARK_HOLD_SECONDS=1500 bash scripts/run-spark-score.sh</code>. When the sleep ends, Stackable deletes the pods.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/25-gitops-apps.png" alt="OpenShift GitOps Applications all Synced and Healthy" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 36</span>
             <strong>OpenShift GitOps</strong>
             <span class="desc">App of apps under <code>gitops/</code>. Applications: churn-score (includes the CPU workbench), Model Registry, MaaS layers, Stackable Spark operators, kubelet <code>maxPods: 500</code>. <code>CheCluster</code> and the churn-score <code>SparkApplication</code> are opt-in (<code>bash scripts/enable-devspaces.sh</code>, <code>bash scripts/run-spark-score.sh</code>). <code>prune</code> is off. Install: <code>bash scripts/enable-gitops.sh</code>.</span>
           </figcaption>
@@ -375,7 +384,7 @@
         <figure class="journey-slide" hidden>
           <img src="assets/screenshots/26-gitops-oc.png" alt="oc get application shows eight GitOps apps Synced Healthy" width="1448" height="954">
           <figcaption>
-            <span class="slide-num">Step 36</span>
+            <span class="slide-num">Step 37</span>
             <strong>oc get application</strong>
             <span class="desc">Same list from the CLI. Tekton and KFP still promote the model; Argo keeps the cluster copy matching <code>main</code>.</span>
           </figcaption>
@@ -389,7 +398,7 @@
           <button type="button" class="journey-btn" id="journey-fs" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button>
         </div>
         <div class="journey-dots" id="journey-dots" role="tablist" aria-label="Steps"></div>
-        <span class="journey-status" id="journey-status" aria-live="polite">1 / 36</span>
+        <span class="journey-status" id="journey-status" aria-live="polite">1 / 37</span>
       </div>
     </div>
     <p class="hint">← → to move · F for fullscreen · click a capture or diagram to enlarge</p>

@@ -17,6 +17,9 @@ spec: {}
 ---
 # Commons / Secret / Listener are required by every Stackable operator.
 # https://docs.stackable.tech/home/stable/spark-k8s/getting_started/installation/
+# Verified on certified-operators stable: CSV 26.7.0 with Spark productVersion 3.5.8.
+# Channel stays stable (same as the other OperatorHub subs in this repo), so a
+# later catalog can move the CSV. Re-check productVersion 3.5.8 if that happens.
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:

@@ -50,6 +50,9 @@ echo "OpenShift console: Administrator → GitOps, or the Route above (OpenShift
 echo "Applications live in namespace openshift-gitops."
 echo
 echo "On a new cluster, also run:"
-echo "  bash scripts/enable-maas.sh        # DSC MaaS flags + first-time DB secrets"
-echo "  bash scripts/enable-workbench.sh   # CPU Jupyter workbench + live MAAS_URL"
-echo "  bash scripts/enable-devspaces.sh   # optional OpenShift Dev Spaces (OperatorHub stable)"
+echo "  bash scripts/enable-maas.sh           # DSC MaaS flags + first-time DB secrets"
+echo "  bash scripts/enable-workbench.sh      # CPU Jupyter workbench + live MAAS_URL"
+echo "  bash scripts/run-spark-score.sh       # Stackable Spark batch -> /predict (after inference is up)"
+echo "  bash scripts/enable-streams-kafka.sh  # Streams for Apache Kafka + Console (after operators sync)"
+echo "  bash scripts/run-spark-kafka.sh       # Spark streaming subscribe -> /predict"
+echo "  bash scripts/enable-devspaces.sh      # optional OpenShift Dev Spaces (OperatorHub stable)"

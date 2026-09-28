@@ -1,0 +1,32 @@
+# Streams for Apache Kafka + Console (OperatorHub package names stay amq-streams*).
+# Product docs name: Streams for Apache Kafka. Pattern:
+# maximilianoPizarro/field-sourced-content-template charts/all/cdc-pipeline/
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: amq-streams
+  namespace: openshift-operators
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: streams-kafka
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: amq-streams
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: amq-streams-console
+  namespace: openshift-operators
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: streams-kafka-console
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: amq-streams-console
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace

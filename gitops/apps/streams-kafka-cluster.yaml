@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ocp-datalake-streams-kafka-cluster
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maximilianoPizarro/ocp-datalake.git
+    targetRevision: main
+    path: manifests/streams-kafka/cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kafka
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

@@ -11,4 +11,6 @@ resources:
   - maas-postgres.yaml
   - maas-simulator.yaml
   - stackable-operators.yaml
+  - streams-kafka-operators.yaml
+  - streams-kafka-cluster.yaml
   - kubelet.yaml

@@ -1,28 +1,32 @@
-# Stackable SparkApplication: one-row batch DataFrame -> churn-score /predict.
-# Applied with manifests/spark/kustomization.yaml via scripts/run-spark-score.sh.
-# Not an Argo app: reapplying this CR starts another run.
-# https://docs.stackable.tech/home/stable/spark-k8s/getting_started/first_steps/
+# Stackable SparkApplication: subscribe to Streams for Apache Kafka topic
+# churn-events, score via /predict. Opt-in via scripts/run-spark-kafka.sh.
 apiVersion: spark.stackable.tech/v1alpha1
 kind: SparkApplication
 metadata:
-  name: spark-to-churn-score
+  name: spark-from-kafka-churn
   namespace: ocp-datalake
   labels:
-    app.kubernetes.io/name: spark-to-churn-score
+    app.kubernetes.io/name: spark-from-kafka-churn
     app.kubernetes.io/part-of: ocp-datalake
 spec:
   sparkImage:
     productVersion: "3.5.8"
   mode: cluster
-  # Override at apply time: SPARK_HOLD_SECONDS=1800 bash scripts/run-spark-score.sh
+  mainApplicationFile: local:///arguments/stream.py
+  deps:
+    packages:
+      - org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.8
   env:
-    - name: SPARK_HOLD_SECONDS
-      value: "0"
-  mainApplicationFile: local:///arguments/score.py
+    - name: KAFKA_BOOTSTRAP
+      value: churn-kafka-bootstrap.kafka.svc:9092
+    - name: KAFKA_TOPIC
+      value: churn-events
+    - name: PREDICT_URL
+      value: http://inference.ocp-datalake.svc:4180/predict
   volumes:
     - name: job-script
       configMap:
-        name: spark-score-script
+        name: spark-kafka-script
   job:
     config:
       resources:

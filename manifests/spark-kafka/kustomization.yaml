@@ -1,0 +1,17 @@
+# Streaming Spark consumer. Not an Argo app — stays Running until deleted.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ocp-datalake
+resources:
+  - rbac.yaml
+  - application.yaml
+configMapGenerator:
+  - name: spark-kafka-script
+    files:
+      - stream.py
+    options:
+      disableNameSuffixHash: true
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: ocp-datalake
+    includeSelectors: false

@@ -161,13 +161,13 @@ bash scripts/enable-devspaces.sh
 
 Optional one-shot [Stackable Operator for Apache Spark](https://docs.stackable.tech/home/stable/spark-k8s/) job (`SparkApplication`, mode `cluster`, productVersion `3.5.8`). Builds a one-row DataFrame for customer `C-1001`, renames features with a Spark `select`, then POSTs to `inference:4180/predict`. This is real Apache Spark via certified operators (commons + secret + listener + spark).
 
-GitOps installs the four operators from OperatorHub (`certified-operators`, channel `stable`, namespace `stackable-operators`). The `SparkApplication` is not in the root kustomization (a permanent CR would re-fire on every Argo sync). On every cluster:
+GitOps installs the four operators from OperatorHub (`certified-operators`, channel `stable`, namespace `stackable-operators`). Verified CSV is 26.7.0 with Spark `productVersion` 3.5.8. The `SparkApplication` is not an Argo app (a permanent CR re-fires when the spec is reapplied). On every cluster, after `inference` exists:
 
 ```bash
 bash scripts/run-spark-score.sh
 ```
 
-That waits for the CSVs, applies SCC `anyuid` for the app ServiceAccount, mounts `manifests/spark/score.py` from a ConfigMap, and runs `SparkApplication` `spark-to-churn-score` (1 executor). Driver log must show `SPARK_VERSION=3.5.x` and `PREDICT_RESPONSE` with `churn: true`, probability ≈ 0.5987 — identical to:
+That waits for the four CSVs, checks Service `inference`, and applies `manifests/spark/` (SCC `anyuid`, ConfigMap `spark-score-script` generated from `score.py`, and `SparkApplication` `spark-to-churn-score` with 1 executor). Driver log must show `SPARK_VERSION=3.5.x` and `PREDICT_RESPONSE` with `churn: true`, probability ≈ 0.5987 — identical to:
 
 ```bash
 ROUTE=https://inference-ocp-datalake.$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}')
@@ -176,7 +176,24 @@ curl -sk -H 'Content-Type: application/json' \
   "$ROUTE/predict"
 ```
 
+To leave the driver and executor `Running` after the score (Stackable deletes them as soon as the driver exits):
+
+```bash
+SPARK_HOLD_SECONDS=1500 bash scripts/run-spark-score.sh
+```
+
 Quota headroom in `ocp-datalake`: job + driver + 1 executor (~3 pods, ~1 Gi memory limit each).
+
+### 5d. Streams for Apache Kafka → Spark → /predict
+
+Optional single-node [Streams for Apache Kafka](https://docs.redhat.com/en/documentation/red_hat_streams_for_apache_kafka/) (KRaft) plus the official Console UI. Pattern matches [field-sourced-content-template](https://github.com/maximilianoPizarro/field-sourced-content-template) `cdc-pipeline` (plain listener without auth, Console CR on that listener). OperatorHub package names remain `amq-streams` / `amq-streams-console`; the product name is Streams for Apache Kafka, not AMQ Streams.
+
+```bash
+bash scripts/enable-streams-kafka.sh
+bash scripts/run-spark-kafka.sh
+```
+
+That installs the operators in `openshift-operators`, creates namespace `kafka` with `Kafka` `churn` (1 dual-role node), topic `churn-events`, and Console hostname `kafka-console.<apps-domain>`. The Spark script publishes one JSON message, applies Stackable `SparkApplication` `spark-from-kafka-churn` (Structured Streaming + `spark-sql-kafka`), and waits for `PREDICT_RESPONSE` with `churn: true`. Driver and executor stay **Running** until you delete the CR. Open the Console to browse the topic.
 
 To fill Observe → Usage token series from a laptop:
 
@@ -226,6 +243,8 @@ That installs the OpenShift GitOps operator (channel `latest`) and syncs:
 | `ocp-datalake-maas-postgres` | API-key DB (password via PreSync Job, not git) | 2 |
 | `ocp-datalake-maas-simulator` | CPU `LLMInferenceService` + MaaS CRs | 3 |
 | `ocp-datalake-stackable-operators` | Stackable commons + secret + listener + spark (`certified-operators`, `stable`) | 0 |
+| `ocp-datalake-streams-kafka-operators` | Streams for Apache Kafka + Console (`redhat-operators`, `stable`) | 0 |
+| `ocp-datalake-streams-kafka-cluster` | `Kafka` `churn`, topic `churn-events`, Console CR | 1 |
 | `ocp-datalake-kubelet` | KubeletConfig `maxPods: 500` on the master pool | 0 |
 
 `prune` is off. Do not point this at a cluster where you need Argo to delete unused objects. On a **new** install you still need OpenShift, OpenShift AI 3.5, and OpenShift Pipelines already present. After the first GitOps sync, run `bash scripts/enable-workbench.sh` so ConfigMap `workbench-demo-env` gets the live `maas.<apps-domain>`. Change the Gateway hostname in git before the first sync if the apps domain is not this sandbox.
@@ -296,6 +315,8 @@ The OpenShift pieces (KServe, RHBK, Tekton/KFP, quota, NetworkPolicy) are the ha
 | Notebooks / workspace | OpenShift AI workbenches (`ocp-datalake-demo`, CPU) + Dev Spaces | — |
 | Jobs / Workflows | OpenShift Pipelines, Data Science Pipelines | Argo Workflows; GitOps does not run training |
 | Apache Spark batch | One-shot `SparkApplication` `spark-to-churn-score` (`scripts/run-spark-score.sh`) | [Stackable Spark operator](https://docs.stackable.tech/home/stable/spark-k8s/) (commons + secret + listener + spark), productVersion 3.5.8 |
+| Streams for Apache Kafka | Single-node KRaft `churn` + Console + topic `churn-events` | [Streams for Apache Kafka](https://docs.redhat.com/en/documentation/red_hat_streams_for_apache_kafka/) (`amq-streams` + `amq-streams-console` packages) |
+| Spark ← Kafka | Streaming `SparkApplication` `spark-from-kafka-churn` (`scripts/run-spark-kafka.sh`) | Stackable Spark + `spark-sql-kafka` → `/predict` |
 | MLflow Tracking | KFP / DSPA run metadata | Self-hosted MLflow; no RH tracking product |
 | Model Registry + UC models | OpenShift AI Model Registry (`ocp-datalake-registry`) | UC grants stay on Databricks; pull via `databricks-uc` |
 | Unity Catalog | RBAC + GitOps + Model Registry | OpenLineage/Marquez; **no full UC equivalent** |
@@ -341,6 +362,9 @@ Apply manifests via GitOps (preferred) or `oc`, then promote:
 ```bash
 bash scripts/enable-gitops.sh
 bash scripts/enable-workbench.sh
+bash scripts/run-spark-score.sh
+bash scripts/enable-streams-kafka.sh
+bash scripts/run-spark-kafka.sh
 # or: oc apply -k . && oc apply -k manifests/registry
 
 # Tekton twin
@@ -372,12 +396,14 @@ manifests/registry/         Model Registry instance + pipeline RBAC (Argo app)
 manifests/workbench/        Notebook CR + PVC (HardwareProfile default-profile)
 manifests/devspaces/        Dev Spaces operator Subscription + CheCluster
 manifests/stackable/        OperatorHub Subscriptions (commons, secret, listener, spark)
-manifests/spark/            SparkApplication + score.py (opt-in via run-spark-score.sh)
+manifests/spark/            Spark kustomize bundle (SCC, ConfigMap from score.py, SparkApplication; opt-in via run-spark-score.sh)
+manifests/streams-kafka/    Streams for Apache Kafka operators + cluster + Console CR
+manifests/spark-kafka/      Spark streaming consumer of churn-events (opt-in via run-spark-kafka.sh)
 manifests/kubelet/          KubeletConfig maxPods 500 (single control-plane node)
 notebooks/                  ocp-datalake-demo.ipynb (/predict + MaaS chat)
 gitops/                     OpenShift GitOps operator + Argo CD app-of-apps
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
-scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, run-spark-score.sh, maas-usage-load.sh
+scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, enable-streams-kafka.sh, run-spark-score.sh, run-spark-kafka.sh, maas-usage-load.sh
 docs/                       GitHub Pages site (journey + screenshots)
 docs/assets/diagrams/       architecture and journey SVGs
 docs/assets/screenshots/    live OpenShift and OpenShift AI captures

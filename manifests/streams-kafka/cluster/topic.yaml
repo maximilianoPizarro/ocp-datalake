@@ -1,0 +1,14 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: churn-events
+  namespace: kafka
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: streams-kafka
+    strimzi.io/cluster: churn
+spec:
+  partitions: 1
+  replicas: 1
+  config:
+    retention.ms: "86400000"
