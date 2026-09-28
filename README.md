@@ -167,7 +167,7 @@ GitOps installs the operator from OperatorHub (`community-operators`, channel `c
 bash scripts/enable-integration.sh
 ```
 
-That applies the Subscription if needed, then `churn-score-bridge`, the NetworkPolicy, and Route `churn-camel`. TTL is 8 hours. The console entry is **Integration Platform**.
+That applies the Subscription if needed, then the IntegrationFlow `spark-to-churn-score`, the NetworkPolicy, and Route `churn-camel`. TTL is 8 hours. In **Integration Platform** the flow is three routes: `spark-batch-in` (`/spark/score`), `spark-features-to-predict` (tenure, charges, support tickets), and `openshift-ai-churn-score`.
 
 Same model as Route `inference` `/predict`. From Web Terminal use Route `churn-camel` (ingress is allowed; a Service in `ocp-datalake` from another project is blocked by NetworkPolicy):
 
@@ -175,7 +175,7 @@ Same model as Route `inference` `/predict`. From Web Terminal use Route `churn-c
 CAMEL="$(oc get route churn-camel -n ocp-datalake -o jsonpath='{.spec.host}')"
 curl -sk -H 'Content-Type: application/json' \
   -d '{"customer_id":"C-1001","source":"spark-batch","features":{"account_tenure_months":12,"monthly_charges":70,"open_support_tickets":3}}' \
-  "https://${CAMEL}/score"
+  "https://${CAMEL}/spark/score"
 ```
 
 Expected: `churn: true`, probability ≈ 0.5987 — identical to:
@@ -304,7 +304,7 @@ The OpenShift pieces (KServe, RHBK, Tekton/KFP, quota, NetworkPolicy) are the ha
 | --- | --- | --- |
 | Notebooks / workspace | OpenShift AI workbenches (`ocp-datalake-demo`, CPU) + Dev Spaces | — |
 | Jobs / Workflows | OpenShift Pipelines, Data Science Pipelines | Argo Workflows; GitOps does not run training |
-| Integration / transform | Ephemeral `IntegrationFlow` `churn-score-bridge` (Spark-shaped JSON → `/predict`) | [OpenShift Integration Operator](https://maximilianopizarro.github.io/openshift-integration-operator/) v0.8.2. No Spark cluster |
+| Integration / transform | Ephemeral `IntegrationFlow` `spark-to-churn-score` (`/spark/score` → `/predict`) | [OpenShift Integration Operator](https://maximilianopizarro.github.io/openshift-integration-operator/) v0.8.2. No Spark cluster |
 | MLflow Tracking | KFP / DSPA run metadata | Self-hosted MLflow; no RH tracking product |
 | Model Registry + UC models | OpenShift AI Model Registry (`ocp-datalake-registry`) | UC grants stay on Databricks; pull via `databricks-uc` |
 | Unity Catalog | RBAC + GitOps + Model Registry | OpenLineage/Marquez; **no full UC equivalent** |
@@ -380,7 +380,7 @@ manifests/maas/             Connectivity Link, Gateway, Postgres, CPU simulator 
 manifests/registry/         Model Registry instance + pipeline RBAC (Argo app)
 manifests/workbench/        Notebook CR + PVC (HardwareProfile default-profile)
 manifests/devspaces/        Dev Spaces operator Subscription + CheCluster
-manifests/integration/     OperatorHub Subscription + ephemeral IntegrationFlow churn-score-bridge
+manifests/integration/     OperatorHub Subscription + ephemeral IntegrationFlow spark-to-churn-score
 manifests/kubelet/          KubeletConfig maxPods 500 (single control-plane node)
 notebooks/                  ocp-datalake-demo.ipynb (/predict + MaaS chat)
 gitops/                     OpenShift GitOps operator + Argo CD app-of-apps

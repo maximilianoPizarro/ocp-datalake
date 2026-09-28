@@ -1,4 +1,4 @@
-# Service iflow-churn-score-bridge is created by the operator with an unnamed
+# Service iflow-spark-to-churn-score is created by the operator with an unnamed
 # port 8080. enable-integration.sh names that port http before this Route is applied.
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -6,12 +6,12 @@ metadata:
   name: churn-camel
   namespace: ocp-datalake
   labels:
-    app.kubernetes.io/name: churn-score-bridge
+    app.kubernetes.io/name: spark-to-churn-score
     app.kubernetes.io/part-of: ocp-datalake
 spec:
   to:
     kind: Service
-    name: iflow-churn-score-bridge
+    name: iflow-spark-to-churn-score
     weight: 100
   port:
     targetPort: http

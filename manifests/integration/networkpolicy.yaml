@@ -1,17 +1,17 @@
 # Web Terminal runs in another project, so it must use Route churn-camel.
-# The worker Service is iflow-churn-score-bridge:8080 (created by the operator).
+# The worker Service is iflow-spark-to-churn-score:8080 (created by the operator).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: churn-score-bridge-ingress
+  name: spark-to-churn-score-ingress
   namespace: ocp-datalake
   labels:
-    app.kubernetes.io/name: churn-score-bridge
+    app.kubernetes.io/name: spark-to-churn-score
     app.kubernetes.io/part-of: ocp-datalake
 spec:
   podSelector:
     matchLabels:
-      platform.io/flow-name: churn-score-bridge
+      platform.io/flow-name: spark-to-churn-score
   policyTypes:
     - Ingress
   ingress:

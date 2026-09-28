@@ -51,42 +51,43 @@ if ! oc get crd integrationflows.platform.io >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "==> IntegrationFlow churn-score-bridge"
+echo "==> IntegrationFlow spark-to-churn-score"
 oc apply -f "${ROOT}/manifests/integration/flow.yaml"
 oc apply -f "${ROOT}/manifests/integration/networkpolicy.yaml"
+oc delete integrationflow churn-score-bridge -n ocp-datalake --ignore-not-found
 
 echo "    waiting for phase Running..."
 PHASE=""
 for _ in $(seq 1 60); do
-  PHASE="$(oc get integrationflow churn-score-bridge -n ocp-datalake -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+  PHASE="$(oc get integrationflow spark-to-churn-score -n ocp-datalake -o jsonpath='{.status.phase}' 2>/dev/null || true)"
   if [ "${PHASE}" = "Running" ]; then
     break
   fi
   sleep 5
 done
-oc get integrationflow churn-score-bridge -n ocp-datalake || true
-oc get deploy,svc,route -n ocp-datalake -l platform.io/flow-name=churn-score-bridge || true
+oc get integrationflow spark-to-churn-score -n ocp-datalake || true
+oc get deploy,svc,route -n ocp-datalake -l platform.io/flow-name=spark-to-churn-score || true
 oc get route churn-camel -n ocp-datalake || true
 
 if [ "${PHASE}" != "Running" ]; then
   echo "IntegrationFlow not Running yet (phase=${PHASE:-unknown})." >&2
-  oc describe integrationflow churn-score-bridge -n ocp-datalake | tail -40 || true
+  oc describe integrationflow spark-to-churn-score -n ocp-datalake | tail -40 || true
   exit 1
 fi
 
 # The operator creates the Service with an unnamed port. Name it so the Route can bind.
-oc patch svc iflow-churn-score-bridge -n ocp-datalake --type=json -p \
+oc patch svc iflow-spark-to-churn-score -n ocp-datalake --type=json -p \
   '[{"op":"add","path":"/spec/ports/0/name","value":"http"}]' >/dev/null 2>&1 \
-  || oc patch svc iflow-churn-score-bridge -n ocp-datalake --type=json -p \
+  || oc patch svc iflow-spark-to-churn-score -n ocp-datalake --type=json -p \
     '[{"op":"replace","path":"/spec/ports/0/name","value":"http"}]'
 oc apply -f "${ROOT}/manifests/integration/route.yaml"
 
 HOST="$(oc get route churn-camel -n ocp-datalake -o jsonpath='{.spec.host}')"
 echo
-echo "Bridge: https://${HOST}/score"
+echo "Bridge: https://${HOST}/spark/score"
 echo "Console: Administrator perspective, Integration Platform (plugin from the CSV)."
 echo "Example:"
 echo "  curl -sk -H 'Content-Type: application/json' \\"
 echo "    -d '{\"customer_id\":\"C-1001\",\"source\":\"spark-batch\",\"features\":{\"account_tenure_months\":12,\"monthly_charges\":70,\"open_support_tickets\":3}}' \\"
-echo "    \"https://${HOST}/score\""
+echo "    \"https://${HOST}/spark/score\""
 echo "Same model as POST /predict on Route inference."
