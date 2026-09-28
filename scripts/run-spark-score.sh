@@ -61,29 +61,22 @@ oc delete sparkapplication "${APP}" -n "${NS}" --ignore-not-found --wait=true
 echo "==> SparkApplication ${APP}"
 oc apply -f "${ROOT}/manifests/spark/application.yaml"
 
-echo "    waiting for driver Succeeded..."
+echo "    waiting for driver and following its log..."
+LOG_FILE="$(mktemp)"
 DRIVER=""
 PHASE=""
-for _ in $(seq 1 120); do
+for _ in $(seq 1 90); do
   DRIVER="$(oc get pods -n "${NS}" -l "app.kubernetes.io/instance=${APP},spark-role=driver" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
-  if [ -z "${DRIVER}" ]; then
-    # Fallback labels used by some Stackable releases
-    DRIVER="$(oc get pods -n "${NS}" --no-headers 2>/dev/null | awk '/spark-to-churn-score/ && /driver/{print $1; exit}')"
-  fi
   if [ -n "${DRIVER}" ]; then
-    PHASE="$(oc get pod "${DRIVER}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
-    case "${PHASE}" in
-      Succeeded|Failed) break ;;
-    esac
+    break
   fi
-  # Surface Error phase on the CR early
   CR_PHASE="$(oc get sparkapplication "${APP}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
   if [ "${CR_PHASE}" = "Failed" ]; then
     echo "SparkApplication Failed" >&2
     oc get sparkapplication "${APP}" -n "${NS}" -o yaml | tail -60 || true
     exit 1
   fi
-  sleep 5
+  sleep 2
 done
 
 if [ -z "${DRIVER}" ]; then
@@ -93,21 +86,20 @@ if [ -z "${DRIVER}" ]; then
   exit 1
 fi
 
-echo "    driver=${DRIVER} phase=${PHASE}"
-echo "==> driver logs"
-oc logs -n "${NS}" "${DRIVER}" --tail=200 || true
+echo "    driver=${DRIVER}"
+# Follow until the container exits. Stackable removes the pod right after success.
+oc logs -n "${NS}" -f "${DRIVER}" 2>/dev/null | tee "${LOG_FILE}" || true
+PHASE="$(oc get pod "${DRIVER}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo Succeeded)"
+echo "    driver phase=${PHASE}"
 
-if [ "${PHASE}" != "Succeeded" ]; then
-  echo "Spark driver did not succeed (phase=${PHASE:-unknown})" >&2
-  oc describe pod "${DRIVER}" -n "${NS}" | tail -60 || true
-  oc get pods -n "${NS}" | grep -i spark || true
+if [ "${PHASE}" = "Failed" ]; then
+  echo "Spark driver failed" >&2
   exit 1
 fi
 
-LOGS="$(oc logs -n "${NS}" "${DRIVER}" || true)"
-echo "${LOGS}" | grep -q 'SPARK_VERSION=' || { echo "SPARK_VERSION missing from driver log" >&2; exit 1; }
-echo "${LOGS}" | grep -q 'churn' || { echo "expected churn in PREDICT_RESPONSE" >&2; exit 1; }
-echo "${LOGS}" | grep -E 'PREDICT_RESPONSE=.*true|\"churn\": true' >/dev/null \
-  || { echo "expected churn true in PREDICT_RESPONSE" >&2; exit 1; }
+grep -q 'SPARK_VERSION=' "${LOG_FILE}" || { echo "SPARK_VERSION missing from driver log" >&2; exit 1; }
+grep -q 'churn' "${LOG_FILE}" || { echo "expected churn in PREDICT_RESPONSE" >&2; cat "${LOG_FILE}" >&2; exit 1; }
+grep -E 'PREDICT_RESPONSE=.*true|"churn": true' "${LOG_FILE}" >/dev/null \
+  || { echo "expected churn true in PREDICT_RESPONSE" >&2; cat "${LOG_FILE}" >&2; exit 1; }
 
 echo "==> ok: Stackable Apache Spark scored churn-score"
