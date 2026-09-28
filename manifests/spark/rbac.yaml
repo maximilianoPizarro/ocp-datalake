@@ -1,0 +1,18 @@
+# OpenShift SCC for the ServiceAccount Stackable creates (same name as the
+# SparkApplication). The operator also creates a RoleBinding to its ClusterRole
+# so the driver can spawn executor pods — we only need anyuid for image UID 1000.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spark-to-churn-score-anyuid
+  labels:
+    app.kubernetes.io/name: spark-to-churn-score
+    app.kubernetes.io/part-of: ocp-datalake
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid
+subjects:
+  - kind: ServiceAccount
+    name: spark-to-churn-score
+    namespace: ocp-datalake

@@ -10,5 +10,5 @@ resources:
   - maas-platform.yaml
   - maas-postgres.yaml
   - maas-simulator.yaml
-  - integration-operator.yaml
+  - stackable-operators.yaml
   - kubelet.yaml

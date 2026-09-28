@@ -157,28 +157,17 @@ Optional IDE (OperatorHub `devspaces`, channel `stable`). GitOps does not instal
 bash scripts/enable-devspaces.sh
 ```
 
-### 5c. Integration flow (Spark-shaped JSON → /predict)
+### 5c. Apache Spark (Stackable) → /predict
 
-Optional [OpenShift Integration Operator](https://maximilianopizarro.github.io/openshift-integration-operator/) **Quick Try** flow (`IntegrationFlow`, `deploymentMode: EPHEMERAL`). It accepts an enterprise / batch-shaped record and maps it to the same body the predictor expects. **No Apache Spark cluster** and no Camel K build — the worker is the precompiled image `camel-worker-http:v0.8.2`. OperatorHub marks Red Hat Integration - Camel K obsolete on this cluster; this flow replaces that path.
+Optional one-shot [Stackable Operator for Apache Spark](https://docs.stackable.tech/home/stable/spark-k8s/) job (`SparkApplication`, mode `cluster`, productVersion `3.5.8`). Builds a one-row DataFrame for customer `C-1001`, renames features with a Spark `select`, then POSTs to `inference:4180/predict`. This is real Apache Spark via certified operators (commons + secret + listener + spark).
 
-GitOps installs the operator from OperatorHub (`community-operators`, channel `candidate-v0`, namespace `openshift-integration`). The CSV ships the operator and the console plugin. The `IntegrationFlow` is not in the root kustomization. On every cluster:
-
-```bash
-bash scripts/enable-integration.sh
-```
-
-That applies the Subscription if needed, then the IntegrationFlow `spark-to-churn-score`, the NetworkPolicy, and Route `churn-camel`. TTL is 8 hours. In **Integration Platform** the flow is three routes: `spark-batch-in` (`/spark/score`), `spark-features-to-predict` (tenure, charges, support tickets), and `openshift-ai-churn-score`.
-
-Same model as Route `inference` `/predict`. From Web Terminal use Route `churn-camel` (ingress is allowed; a Service in `ocp-datalake` from another project is blocked by NetworkPolicy):
+GitOps installs the four operators from OperatorHub (`certified-operators`, channel `stable`, namespace `stackable-operators`). The `SparkApplication` is not in the root kustomization (a permanent CR would re-fire on every Argo sync). On every cluster:
 
 ```bash
-CAMEL="$(oc get route churn-camel -n ocp-datalake -o jsonpath='{.spec.host}')"
-curl -sk -H 'Content-Type: application/json' \
-  -d '{"customer_id":"C-1001","source":"spark-batch","features":{"account_tenure_months":12,"monthly_charges":70,"open_support_tickets":3}}' \
-  "https://${CAMEL}/spark/score"
+bash scripts/run-spark-score.sh
 ```
 
-Expected: `churn: true`, probability ≈ 0.5987 — identical to:
+That waits for the CSVs, applies SCC `anyuid` for the app ServiceAccount, mounts `manifests/spark/score.py` from a ConfigMap, and runs `SparkApplication` `spark-to-churn-score` (1 executor). Driver log must show `SPARK_VERSION=3.5.x` and `PREDICT_RESPONSE` with `churn: true`, probability ≈ 0.5987 — identical to:
 
 ```bash
 ROUTE=https://inference-ocp-datalake.$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}')
@@ -186,6 +175,8 @@ curl -sk -H 'Content-Type: application/json' \
   -d '{"tenure":12,"charges":70,"support_tickets":3}' \
   "$ROUTE/predict"
 ```
+
+Quota headroom in `ocp-datalake`: job + driver + 1 executor (~3 pods, ~1 Gi memory limit each).
 
 To fill Observe → Usage token series from a laptop:
 
@@ -234,7 +225,7 @@ That installs the OpenShift GitOps operator (channel `latest`) and syncs:
 | `ocp-datalake-maas-platform` | Connectivity Link, Gateway, Route `maas` | 2 |
 | `ocp-datalake-maas-postgres` | API-key DB (password via PreSync Job, not git) | 2 |
 | `ocp-datalake-maas-simulator` | CPU `LLMInferenceService` + MaaS CRs | 3 |
-| `ocp-datalake-integration-operator` | OpenShift Integration Operator Subscription (`candidate-v0`) | 0 |
+| `ocp-datalake-stackable-operators` | Stackable commons + secret + listener + spark (`certified-operators`, `stable`) | 0 |
 | `ocp-datalake-kubelet` | KubeletConfig `maxPods: 500` on the master pool | 0 |
 
 `prune` is off. Do not point this at a cluster where you need Argo to delete unused objects. On a **new** install you still need OpenShift, OpenShift AI 3.5, and OpenShift Pipelines already present. After the first GitOps sync, run `bash scripts/enable-workbench.sh` so ConfigMap `workbench-demo-env` gets the live `maas.<apps-domain>`. Change the Gateway hostname in git before the first sync if the apps domain is not this sandbox.
@@ -304,7 +295,7 @@ The OpenShift pieces (KServe, RHBK, Tekton/KFP, quota, NetworkPolicy) are the ha
 | --- | --- | --- |
 | Notebooks / workspace | OpenShift AI workbenches (`ocp-datalake-demo`, CPU) + Dev Spaces | — |
 | Jobs / Workflows | OpenShift Pipelines, Data Science Pipelines | Argo Workflows; GitOps does not run training |
-| Integration / transform | Ephemeral `IntegrationFlow` `spark-to-churn-score` (`/spark/score` → `/predict`) | [OpenShift Integration Operator](https://maximilianopizarro.github.io/openshift-integration-operator/) v0.8.2. No Spark cluster |
+| Apache Spark batch | One-shot `SparkApplication` `spark-to-churn-score` (`scripts/run-spark-score.sh`) | [Stackable Spark operator](https://docs.stackable.tech/home/stable/spark-k8s/) (commons + secret + listener + spark), productVersion 3.5.8 |
 | MLflow Tracking | KFP / DSPA run metadata | Self-hosted MLflow; no RH tracking product |
 | Model Registry + UC models | OpenShift AI Model Registry (`ocp-datalake-registry`) | UC grants stay on Databricks; pull via `databricks-uc` |
 | Unity Catalog | RBAC + GitOps + Model Registry | OpenLineage/Marquez; **no full UC equivalent** |
@@ -380,12 +371,13 @@ manifests/maas/             Connectivity Link, Gateway, Postgres, CPU simulator 
 manifests/registry/         Model Registry instance + pipeline RBAC (Argo app)
 manifests/workbench/        Notebook CR + PVC (HardwareProfile default-profile)
 manifests/devspaces/        Dev Spaces operator Subscription + CheCluster
-manifests/integration/     OperatorHub Subscription + ephemeral IntegrationFlow spark-to-churn-score
+manifests/stackable/        OperatorHub Subscriptions (commons, secret, listener, spark)
+manifests/spark/            SparkApplication + score.py (opt-in via run-spark-score.sh)
 manifests/kubelet/          KubeletConfig maxPods 500 (single control-plane node)
 notebooks/                  ocp-datalake-demo.ipynb (/predict + MaaS chat)
 gitops/                     OpenShift GitOps operator + Argo CD app-of-apps
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
-scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, enable-integration.sh, maas-usage-load.sh
+scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, run-spark-score.sh, maas-usage-load.sh
 docs/                       GitHub Pages site (journey + screenshots)
 docs/assets/diagrams/       architecture and journey SVGs
 docs/assets/screenshots/    live OpenShift and OpenShift AI captures

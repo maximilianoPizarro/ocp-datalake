@@ -1,0 +1,54 @@
+# Stackable SparkApplication: one-row batch DataFrame -> churn-score /predict.
+# Opt-in (not in root kustomization / Argo). Apply via scripts/run-spark-score.sh.
+# https://docs.stackable.tech/home/stable/spark-k8s/getting_started/first_steps/
+apiVersion: spark.stackable.tech/v1alpha1
+kind: SparkApplication
+metadata:
+  name: spark-to-churn-score
+  namespace: ocp-datalake
+  labels:
+    app.kubernetes.io/name: spark-to-churn-score
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  sparkImage:
+    productVersion: "3.5.8"
+  mode: cluster
+  mainApplicationFile: local:///arguments/score.py
+  volumes:
+    - name: job-script
+      configMap:
+        name: spark-score-script
+  job:
+    config:
+      resources:
+        cpu:
+          min: "250m"
+          max: "1"
+        memory:
+          limit: "1Gi"
+      volumeMounts:
+        - name: job-script
+          mountPath: /arguments
+  driver:
+    config:
+      resources:
+        cpu:
+          min: "250m"
+          max: "1"
+        memory:
+          limit: "1Gi"
+      volumeMounts:
+        - name: job-script
+          mountPath: /arguments
+  executor:
+    replicas: 1
+    config:
+      resources:
+        cpu:
+          min: "250m"
+          max: "1"
+        memory:
+          limit: "1Gi"
+      volumeMounts:
+        - name: job-script
+          mountPath: /arguments
