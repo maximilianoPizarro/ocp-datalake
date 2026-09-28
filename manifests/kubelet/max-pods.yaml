@@ -1,0 +1,14 @@
+# This sandbox is one control-plane node. hostPrefix 23 gives 512 addresses;
+# 500 is the usable kubelet cap. The master pool owns the node.
+apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: set-max-pods
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/master: ""
+  kubeletConfig:
+    maxPods: 500

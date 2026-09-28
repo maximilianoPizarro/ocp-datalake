@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: ocp-datalake-devspaces-operator
+  name: ocp-datalake-kubelet
   namespace: openshift-gitops
   labels:
     app.kubernetes.io/part-of: ocp-datalake
@@ -12,10 +12,10 @@ spec:
   source:
     repoURL: https://github.com/maximilianoPizarro/ocp-datalake.git
     targetRevision: main
-    path: manifests/devspaces/operators
+    path: manifests/kubelet
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshift-operators
+    namespace: openshift-gitops
   syncPolicy:
     automated:
       prune: false

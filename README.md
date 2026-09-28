@@ -151,7 +151,7 @@ oc apply -f manifests/01-quota.yaml
 oc apply -k manifests/workbench
 ```
 
-Optional IDE on a cluster with spare pod capacity (OperatorHub `devspaces` channel `stable`). GitOps installs the operator only; `CheCluster` is opt-in because this 1-node sandbox sits at kubelet pod density (250/250) and `che-server` would stay Pending:
+Optional IDE (OperatorHub `devspaces`, channel `stable`). GitOps does not install it. `CheCluster` stays opt-in:
 
 ```bash
 bash scripts/enable-devspaces.sh
@@ -161,13 +161,13 @@ bash scripts/enable-devspaces.sh
 
 Optional [OpenShift Integration Operator](https://maximilianopizarro.github.io/openshift-integration-operator/) **Quick Try** flow (`IntegrationFlow`, `deploymentMode: EPHEMERAL`). It accepts an enterprise / batch-shaped record and maps it to the same body the predictor expects. **No Apache Spark cluster** and no Camel K build — the worker is the precompiled image `camel-worker-http:v0.8.2`. OperatorHub marks Red Hat Integration - Camel K obsolete on this cluster; this flow replaces that path.
 
-The operator is **not** an Argo application. The chart's default install also starts Kaoto, a console plugin, and an OpenTelemetry collector; `enable-integration.sh` leaves those off so a 1-node sandbox can fit the operator plus one worker. The flow is not in the root kustomization (the CRD appears only after the operator starts). On every cluster:
+GitOps installs the operator from OperatorHub (`community-operators`, channel `candidate-v0`, namespace `openshift-integration`). The CSV ships the operator and the console plugin. The `IntegrationFlow` is not in the root kustomization. On every cluster:
 
 ```bash
 bash scripts/enable-integration.sh
 ```
 
-That installs chart `openshift-integration-operator` 0.8.2 into `openshift-integration`, then applies `manifests/integration/` (`churn-score-bridge`, NetworkPolicy, Route `churn-camel`). TTL is 8 hours. If the node has fewer than 2 free pod slots, the script does not start the operator.
+That applies the Subscription if needed, then `churn-score-bridge`, the NetworkPolicy, and Route `churn-camel`. TTL is 8 hours. The console entry is **Integration Platform**.
 
 Same model as Route `inference` `/predict`. From Web Terminal use Route `churn-camel` (ingress is allowed; a Service in `ocp-datalake` from another project is blocked by NetworkPolicy):
 
@@ -234,7 +234,8 @@ That installs the OpenShift GitOps operator (channel `latest`) and syncs:
 | `ocp-datalake-maas-platform` | Connectivity Link, Gateway, Route `maas` | 2 |
 | `ocp-datalake-maas-postgres` | API-key DB (password via PreSync Job, not git) | 2 |
 | `ocp-datalake-maas-simulator` | CPU `LLMInferenceService` + MaaS CRs | 3 |
-| `ocp-datalake-devspaces-operator` | Dev Spaces Subscription (`stable`) | 0 |
+| `ocp-datalake-integration-operator` | OpenShift Integration Operator Subscription (`candidate-v0`) | 0 |
+| `ocp-datalake-kubelet` | KubeletConfig `maxPods: 500` on the master pool | 0 |
 
 `prune` is off. Do not point this at a cluster where you need Argo to delete unused objects. On a **new** install you still need OpenShift, OpenShift AI 3.5, and OpenShift Pipelines already present. After the first GitOps sync, run `bash scripts/enable-workbench.sh` so ConfigMap `workbench-demo-env` gets the live `maas.<apps-domain>`. Change the Gateway hostname in git before the first sync if the apps domain is not this sandbox.
 
@@ -379,7 +380,8 @@ manifests/maas/             Connectivity Link, Gateway, Postgres, CPU simulator 
 manifests/registry/         Model Registry instance + pipeline RBAC (Argo app)
 manifests/workbench/        Notebook CR + PVC (HardwareProfile default-profile)
 manifests/devspaces/        Dev Spaces operator Subscription + CheCluster
-manifests/integration/     Ephemeral IntegrationFlow churn-score-bridge (opt-in, enable-integration.sh)
+manifests/integration/     OperatorHub Subscription + ephemeral IntegrationFlow churn-score-bridge
+manifests/kubelet/          KubeletConfig maxPods 500 (single control-plane node)
 notebooks/                  ocp-datalake-demo.ipynb (/predict + MaaS chat)
 gitops/                     OpenShift GitOps operator + Argo CD app-of-apps
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines

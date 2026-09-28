@@ -1,0 +1,9 @@
+# Empty targetNamespaces: the operator watches every project, including ocp-datalake.
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-integration
+  namespace: openshift-integration
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec: {}
