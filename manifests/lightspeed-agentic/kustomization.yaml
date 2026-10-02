@@ -1,0 +1,11 @@
+# Opt-in Lightspeed Agentic demo CRs (not Argo). Applied by enable-lightspeed-agentic.sh.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - agent-rbac.yaml
+  - crashloop.yaml
+  - example.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: ocp-datalake
+    includeSelectors: false

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Spark Java Tekton results</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 1448px;
+      height: 954px;
+      background: #0e1014;
+      color: #e6e8ee;
+      font-family: "Red Hat Mono", "IBM Plex Mono", Consolas, ui-monospace, monospace;
+    }
+    .wrap { box-sizing: border-box; height: 954px; padding: 42px 52px 36px; }
+    header { display: flex; justify-content: space-between; align-items: center; }
+    h1 {
+      margin: 0;
+      color: #3dcec8;
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: 0.06em;
+    }
+    .badge {
+      border: 1px solid #3a4150;
+      border-radius: 999px;
+      padding: 8px 16px;
+      color: #c5cad3;
+      font-size: 15px;
+    }
+    .panel {
+      margin-top: 22px;
+      background: #1c2028;
+      border: 1px solid #2c323d;
+      border-radius: 16px;
+      padding: 22px 28px 18px;
+    }
+    .label {
+      color: #e06a5c;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      margin: 0 0 12px;
+    }
+    pre {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .cmd { color: #9aa3b2; }
+    .prompt { color: #7d8ea3; }
+    .ok { color: #6ecf8e; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>WEB TERMINAL · JAVA SPARK + TEKTON</h1>
+      <div class="badge">oc · namespace ocp-datalake</div>
+    </header>
+    <section class="panel">
+      <p class="label">SPARKPI (IMAGE JAR)</p>
+      <pre><span class="prompt">~</span> <span class="cmd">$ bash scripts/run-spark-pi.sh</span>
+<span class="ok">Pi is roughly 3.1423511423511425</span>
+==&gt; ok: Stackable Apache Spark ran Java SparkPi</pre>
+    </section>
+    <section class="panel">
+      <p class="label">CUSTOM JAVA CHURN (TEKTON → SPARKAPPLICATION)</p>
+      <pre><span class="prompt">~</span> <span class="cmd">$ bash scripts/run-spark-java-churn.sh</span>
+SPARK_VERSION=3.5.8-stackable26.7.0
+PREDICT_HTTP=200
+PREDICT_RESPONSE={"model": "churn-score", "version": "1", "source": "databricks-mlflow", "probability": 0.5987, "churn": true}
+<span class="ok">==&gt; ok: Java Spark churn scored via /predict</span></pre>
+    </section>
+  </div>
+</body>
+</html>

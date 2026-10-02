@@ -1,0 +1,39 @@
+# Crashlooping workload for the AgenticRun demo (outside ocp-datalake quota).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lightspeed-demo
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: lightspeed-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server
+  namespace: lightspeed-demo
+  labels:
+    app.kubernetes.io/name: api-server
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-server
+  template:
+    metadata:
+      labels:
+        app: api-server
+    spec:
+      containers:
+        - name: api
+          # Intentionally exits immediately → CrashLoopBackOff for the agentic demo.
+          image: registry.access.redhat.com/ubi9/ubi-micro:latest
+          command: ["/bin/sh", "-c", "echo crashloop-demo; exit 1"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

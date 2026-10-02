@@ -1,0 +1,58 @@
+# External prerequisite RBAC for lightspeed-agentic-operator (see docs/rbac.md).
+# lightspeed-agent SA is created by the operator; this binds it as the reader
+# discovery seed. Escalation lets the controller create per-run execution Roles.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: lightspeed-agent-reader
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+rules:
+- apiGroups: ["", "apps", "batch"]
+  resources: ["pods", "deployments", "replicasets", "statefulsets", "daemonsets", "events", "configmaps", "services", "jobs"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: lightspeed-agent-reader-binding
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: lightspeed-agent-reader
+subjects:
+- kind: ServiceAccount
+  name: lightspeed-agent
+  namespace: openshift-lightspeed
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agentic-operator-escalation
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+rules:
+- apiGroups: ["", "apps", "batch", "networking.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agentic-operator-escalation-binding
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agentic-operator-escalation
+subjects:
+- kind: ServiceAccount
+  name: controller-manager
+  namespace: openshift-lightspeed

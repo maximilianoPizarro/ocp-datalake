@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ocp-datalake Spark paths</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 1600px; height: 900px; overflow: hidden; background: #fff; }
+    body {
+      font-family: "Red Hat Text", sans-serif;
+      color: #151515;
+      padding: 22px 32px 18px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      flex: 1;
+      text-align: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      width: 150px;
+      justify-content: flex-end;
+    }
+    .brand img { height: 24px; }
+    .row {
+      display: grid;
+      grid-template-columns: 156px minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+      margin-bottom: 14px;
+    }
+    .lane {
+      background: #e7f1fa;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px 8px;
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: #002952;
+      line-height: 1.25;
+    }
+    .lane.java { background: #f5e8d8; color: #4a2800; }
+    .lane.kafka { background: #e8f5e9; color: #1b4332; }
+    .steps {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      min-height: 210px;
+    }
+    .card {
+      background: #fff;
+      border: 1.5px solid #d2d2d2;
+      border-radius: 12px;
+      padding: 12px 10px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      flex: 1;
+      min-width: 0;
+    }
+    .card img { height: 36px; max-width: 140px; object-fit: contain; }
+    .card img.spark { height: 42px; max-width: 150px; }
+    .card .name {
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+    .card .role { font-size: 11px; color: #6a6e73; line-height: 1.3; }
+    .card .mono {
+      font-family: "Red Hat Mono", ui-monospace, monospace;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .chev {
+      flex: 0 0 22px;
+      align-self: center;
+      display: flex;
+      justify-content: center;
+    }
+    .group {
+      flex: 2.2;
+      display: flex;
+      gap: 8px;
+      min-width: 0;
+    }
+    .group .card { flex: 1; }
+    .note {
+      text-align: center;
+      font-family: "Red Hat Display", sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      margin-top: 4px;
+      color: #4a4e54;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span style="width:150px"></span>
+    <h1>Apache Spark on Stackable → /predict</h1>
+    <div class="brand"><img src="assets/logos/redhat.svg" alt="">Red Hat</div>
+  </header>
+
+  <div class="row">
+    <div class="lane">Python batch<br>score.py</div>
+    <div class="steps">
+      <div class="card">
+        <img src="assets/logos/python-official.svg" alt="Python">
+        <div class="name">score.py</div>
+        <div class="role">ConfigMap mount<br>one-row DataFrame</div>
+      </div>
+      <div class="chev" aria-hidden="true">
+        <svg width="22" height="48" viewBox="0 0 22 48"><path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card">
+        <img class="spark" src="assets/logos/spark.png" alt="Apache Spark">
+        <div class="name">Stackable operator</div>
+        <div class="role">SparkApplication<br>spark-to-churn-score · 3.5.8</div>
+      </div>
+      <div class="chev" aria-hidden="true">
+        <svg width="22" height="48" viewBox="0 0 22 48"><path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card">
+        <div class="name">driver + executor</div>
+        <div class="role">1 Gi each · hold optional<br>SPARK_HOLD_SECONDS</div>
+      </div>
+      <div class="chev" aria-hidden="true">
+        <svg width="22" height="48" viewBox="0 0 22 48"><path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card">
+        <img src="assets/logos/openshift.svg" alt="OpenShift">
+        <div class="name mono">POST /predict</div>
+        <div class="role">churn true · ~0.5987</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lane java">Java<br>image JAR + Tekton</div>
+    <div class="steps">
+      <div class="group">
+        <div class="card">
+          <img class="spark" src="assets/logos/spark.png" alt="Apache Spark">
+          <div class="name">SparkPi</div>
+          <div class="role">spark-examples.jar<br>scripts/run-spark-pi.sh</div>
+        </div>
+        <div class="card">
+          <img src="assets/logos/tekton.svg" alt="OpenShift Pipelines">
+          <div class="name">OpenShift Pipelines</div>
+          <div class="role">Maven → Buildah<br>ImageStream spark-churn-java</div>
+        </div>
+        <div class="card">
+          <img class="spark" src="assets/logos/spark.png" alt="Apache Spark">
+          <div class="name">ChurnScoreJob</div>
+          <div class="role">spark-java-churn-score<br>custom JAR in image</div>
+        </div>
+      </div>
+      <div class="chev" aria-hidden="true">
+        <svg width="22" height="48" viewBox="0 0 22 48"><path d="M4 10 L18 24 L4 38" fill="none" stroke="#c9190b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card">
+        <img src="assets/logos/openshift.svg" alt="OpenShift">
+        <div class="name mono">POST /predict</div>
+        <div class="role">same contract as Python<br>or Pi is roughly…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lane kafka">Streams for<br>Apache Kafka</div>
+    <div class="steps">
+      <div class="card">
+        <img src="assets/logos/openshift-official.svg" alt="Red Hat OpenShift">
+        <div class="name">Streams for Apache Kafka</div>
+        <div class="role">KRaft · 1 broker<br>Console UI · ns kafka</div>
+      </div>
+      <div class="chev" aria-hidden="true">
+        <svg width="22" height="48" viewBox="0 0 22 48"><path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card">
+        <div class="name mono">churn-events</div>
+        <div class="role">plain 9092 · no auth<br>one JSON message</div>
+      </div>
+      <div class="chev" aria-hidden="true">
+        <svg width="22" height="48" viewBox="0 0 22 48"><path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card">
+        <img class="spark" src="assets/logos/spark.png" alt="Apache Spark">
+        <div class="name">spark-from-kafka-churn</div>
+        <div class="role">Structured Streaming<br>spark-sql-kafka · stays Running</div>
+      </div>
+      <div class="chev" aria-hidden="true">
+        <svg width="22" height="48" viewBox="0 0 22 48"><path d="M4 10 L18 24 L4 38" fill="none" stroke="#151515" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card">
+        <img src="assets/logos/openshift.svg" alt="OpenShift">
+        <div class="name mono">POST /predict</div>
+        <div class="role">foreachBatch score<br>churn true · ~0.5987</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">SparkApplications are opt-in (not Argo). Apache Spark logo © Apache Software Foundation. Product names: Streams for Apache Kafka, OpenShift Pipelines, Stackable Spark operator.</p>
+</body>
+</html>

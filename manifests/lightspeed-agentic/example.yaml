@@ -1,0 +1,99 @@
+# Cluster-scoped product CRs for a representative Agentic demo.
+# LLMProvider URL and model are rewritten by scripts/enable-lightspeed-agentic.sh.
+# Secret llm-maas-credentials (OPENAI_API_KEY) is created by the script — not in git.
+---
+apiVersion: agentic.openshift.io/v1alpha1
+kind: LLMProvider
+metadata:
+  name: maas-openai
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  type: OpenAI
+  openAI:
+    credentialsSecret:
+      name: llm-maas-credentials
+    # Placeholder; script replaces with https://maas.<apps-domain>/v1
+    url: https://maas.EXAMPLE.apps.cluster/v1
+---
+apiVersion: agentic.openshift.io/v1alpha1
+kind: Agent
+metadata:
+  name: smart
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  llmProvider:
+    name: maas-openai
+  # Placeholder; script replaces with MAAS_MODEL (default qwen38-27b).
+  model: qwen38-27b
+  timeouts:
+    analysisSeconds: 300
+    executionSeconds: 600
+    verificationSeconds: 300
+  maxTurns: 50
+---
+apiVersion: agentic.openshift.io/v1alpha1
+kind: Agent
+metadata:
+  name: fast
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  llmProvider:
+    name: maas-openai
+  model: qwen38-27b
+  timeouts:
+    analysisSeconds: 120
+    executionSeconds: 300
+    verificationSeconds: 120
+  maxTurns: 40
+---
+apiVersion: agentic.openshift.io/v1alpha1
+kind: Agent
+metadata:
+  name: default
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  llmProvider:
+    name: maas-openai
+  model: qwen38-27b
+  maxTurns: 50
+---
+apiVersion: agentic.openshift.io/v1alpha1
+kind: ApprovalPolicy
+metadata:
+  name: cluster
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+spec:
+  maxConcurrentRuns: 3
+  stages:
+    - name: Analysis
+      approval: Manual
+    - name: Execution
+      approval: Manual
+    - name: Verification
+      approval: Manual
+---
+apiVersion: agentic.openshift.io/v1alpha1
+kind: AgenticRun
+metadata:
+  name: fix-crashloop
+  namespace: openshift-lightspeed
+  labels:
+    app.kubernetes.io/part-of: ocp-datalake
+    app.kubernetes.io/name: fix-crashloop
+spec:
+  request: >-
+    Deployment api-server in namespace lightspeed-demo CrashLoopBackOff because command exits 1.
+    Confirm with kubectl get pods -n lightspeed-demo.
+    Propose exactly one option: kubectl patch deployment api-server -n lightspeed-demo --type=json
+    to set spec.template.spec.containers[0].command to ["sleep","infinity"].
+  analysis:
+    agent: smart
+  execution:
+    agent: default
+  verification:
+    agent: fast

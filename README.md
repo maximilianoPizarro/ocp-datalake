@@ -41,7 +41,7 @@ Outside Red Hat, the intended model source is **Databricks MLflow / Unity Catalo
 
 ![Architecture: Databricks on the left; OpenShift hub with OpenShift AI, Pipelines, GitOps, Keycloak, Connectivity Link, and KServe; predictive and Models-as-a-Service spokes](docs/assets/diagrams/architecture.png)
 
-Published diagrams are the PNGs under `docs/assets/diagrams/` (`architecture.png`, `journey.png`, `authpolicy-connectivity-link.png`, `bridge-enterprise.png`, `replace-enterprise.png`). Brand marks used to compose them are in `docs/assets/logos/`. Regenerate from HTML sources with `python scripts/render-diagrams.py`.
+Published diagrams are the PNGs under `docs/assets/diagrams/` (`architecture.png`, `journey.png`, `spark-paths.png`, `authpolicy-connectivity-link.png`, `bridge-enterprise.png`, `replace-enterprise.png`). Brand marks used to compose them are in `docs/assets/logos/` (Apache Spark mark from [spark.apache.org/images](https://spark.apache.org/images/)). Regenerate from HTML sources with `python scripts/render-diagrams.py`.
 
 OpenShift does not enter the Databricks workspace. In a real bridge it would receive a versioned artifact, materialize it under cluster policy, and serve it. This PoC does that for a **linear JSON stand-in**, not for a `model.pkl`. There is **one** L4: do not schedule this CPU model and a GPU workbench or vLLM endpoint on the GPU at the same time.
 
@@ -215,6 +215,34 @@ bash scripts/run-spark-kafka.sh
 
 That installs the operators in `openshift-operators`, creates namespace `kafka` with `Kafka` `churn` (1 dual-role node), topic `churn-events`, and Console hostname `kafka-console.<apps-domain>`. The Spark script publishes one JSON message, applies Stackable `SparkApplication` `spark-from-kafka-churn` (Structured Streaming + `spark-sql-kafka`), and waits for `PREDICT_RESPONSE` with `churn: true`. Driver and executor stay **Running** until you delete the CR. Open the Console to browse the topic.
 
+### 5e. Lightspeed Agentic (opt-in)
+
+[Lightspeed Agentic Operator](https://catalog.redhat.com/en/software/containers/openshift-lightspeed/lightspeed-agentic-rhel9-operator/6a1db4b5d0ff00f5421ac5a3) is published on [registry.redhat.io](https://catalog.redhat.com/en/software/containers/openshift-lightspeed/lightspeed-agentic-rhel9-operator/6a1db4b5d0ff00f5421ac5a3) (`openshift-lightspeed/lightspeed-agentic-rhel9-operator`). There is no OperatorHub Subscription for the agentic CRDs yet (unlike classic `lightspeed-operator` / `OLSConfig`); this PoC deploys the catalog image via kustomize from [lightspeed-agentic-operator](https://github.com/maximilianoPizarro/lightspeed-agentic-operator) and wires a **representative** demo outside `ocp-datalake` quota:
+
+- Namespace `openshift-lightspeed`: operator + `LLMProvider` OpenAI → MaaS (`maas.<apps-domain>/v1`) + Agents + Manual `ApprovalPolicy`
+- Namespace `lightspeed-demo`: intentional CrashLoopBackOff Deployment `api-server`
+- `AgenticRun` `fix-crashloop` (analysis → execution → verification)
+- Walkthrough with console captures: [docs/agentic-lightspeed.html](docs/agentic-lightspeed.html)
+- Default sandbox is the **mock** agent (`ols-qe:lightspeed-mock-agent1`): it exercises approvals/results but does **not** remediate `api-server`. The real [agentic sandbox](https://catalog.redhat.com/en/software/containers/openshift-lightspeed/lightspeed-agentic-sandbox-rhel9/69f36995880d74598abd2dae) needs a tools-capable LLM (`AGENT_IMAGE=registry.redhat.io/openshift-lightspeed/lightspeed-agentic-sandbox-rhel9:1.1.4`); MaaS `facebook/opt-125m` currently rejects tool schemas (HTTP 400).
+
+```bash
+# cluster-admin; MaaS already running; clone of lightspeed-agentic-operator for manifests
+LIGHTSPEED_AGENTIC_DIR=~/lightspeed-agentic-operator bash scripts/enable-lightspeed-agentic.sh
+# optional: DEPLOY_MODE=local (build+push integrated registry) or SKIP_DEPLOY=1
+```
+
+Requires MaaS (`bash scripts/enable-maas.sh`). The script mints a short-lived `sk-oai-` key into Secret `llm-maas-credentials` (never committed). The `oc agentic` plugin is optional — approve by patching `AgenticRunApproval` (stages are append-only):
+
+```bash
+oc patch agenticrunapproval fix-crashloop -n openshift-lightspeed --type=merge \
+  -p '{"spec":{"stages":[{"type":"Analysis","analysis":{}}]}}'
+# after analysis options exist:
+oc patch agenticrunapproval fix-crashloop -n openshift-lightspeed --type=json \
+  -p '[{"op":"add","path":"/spec/stages/-","value":{"type":"Execution","execution":{"option":0}}}]'
+oc patch agenticrunapproval fix-crashloop -n openshift-lightspeed --type=json \
+  -p '[{"op":"add","path":"/spec/stages/-","value":{"type":"Verification","verification":{}}}]'
+```
+
 To fill Observe → Usage token series from a laptop:
 
 ```bash
@@ -339,6 +367,7 @@ The OpenShift pieces (KServe, RHBK, Tekton/KFP, quota, NetworkPolicy) are the ha
 | Apache Spark Java custom | Tekton `spark-java-churn` → `SparkApplication` `spark-java-churn-score` (`scripts/run-spark-java-churn.sh`) | Maven job in `apps/spark-churn-java` → ImageStream → `/predict` |
 | Streams for Apache Kafka | Single-node KRaft `churn` + Console + topic `churn-events` | [Streams for Apache Kafka](https://docs.redhat.com/en/documentation/red_hat_streams_for_apache_kafka/) (`amq-streams` + `amq-streams-console` packages) |
 | Spark ← Kafka | Streaming `SparkApplication` `spark-from-kafka-churn` (`scripts/run-spark-kafka.sh`) | Stackable Spark + `spark-sql-kafka` → `/predict` |
+| Lightspeed Agentic | Opt-in `scripts/enable-lightspeed-agentic.sh` (catalog image; no OperatorHub Subscription) | [catalog image](https://catalog.redhat.com/en/software/containers/openshift-lightspeed/lightspeed-agentic-rhel9-operator/6a1db4b5d0ff00f5421ac5a3); MaaS as OpenAI `LLMProvider` + Manual approvals + crashloop demo |
 | MLflow Tracking | KFP / DSPA run metadata | Self-hosted MLflow; no RH tracking product |
 | Model Registry + UC models | OpenShift AI Model Registry (`ocp-datalake-registry`) | UC grants stay on Databricks; pull via `databricks-uc` |
 | Unity Catalog | RBAC + GitOps + Model Registry | OpenLineage/Marquez; **no full UC equivalent** |
@@ -424,11 +453,12 @@ manifests/spark-java-churn/ ImageStream + SCC for custom Java churn (SparkApplic
 apps/spark-churn-java/      Maven Spark job + Dockerfile (Tekton build input)
 manifests/streams-kafka/    Streams for Apache Kafka operators + cluster + Console CR
 manifests/spark-kafka/      Spark streaming consumer of churn-events (opt-in via run-spark-kafka.sh)
+manifests/lightspeed-agentic/ Representative Agentic CRs + crashloop (opt-in; operator via catalog image)
 manifests/kubelet/          KubeletConfig maxPods 500 (single control-plane node)
 notebooks/                  ocp-datalake-demo.ipynb (/predict + MaaS chat)
 gitops/                     OpenShift GitOps operator + Argo CD app-of-apps
 pipelines/                  KFP DSL + compiled YAML for OpenShift AI Data Science Pipelines
-scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, enable-streams-kafka.sh, run-spark-score.sh, run-spark-pi.sh, run-spark-java-churn.sh, run-spark-kafka.sh, maas-usage-load.sh
+scripts/                    register_model.py, pvc_job.py, build_kfp_manifest.py, enable-maas.sh, enable-gitops.sh, enable-workbench.sh, enable-devspaces.sh, enable-streams-kafka.sh, enable-lightspeed-agentic.sh, run-spark-score.sh, run-spark-pi.sh, run-spark-java-churn.sh, run-spark-kafka.sh, maas-usage-load.sh
 docs/                       GitHub Pages site (journey + screenshots)
 docs/assets/diagrams/       architecture and journey SVGs
 docs/assets/screenshots/    live OpenShift and OpenShift AI captures

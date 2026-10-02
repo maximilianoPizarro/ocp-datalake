@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agentic Lightspeed | ocp-datalake</title>
+  <meta name="description" content="AgenticRun fix-crashloop: a CrashLoopBackOff diagnosed under manual approval with Lightspeed Agentic.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./">
+      <img src="assets/logos/redhat.svg" alt="">
+      ocp-datalake
+    </a>
+    <nav>
+      <a href="./">Journey</a>
+      <a href="agentic-lightspeed.html" aria-current="page">Agentic</a>
+      <a class="hide-sm" href="https://github.com/maximilianoPizarro/ocp-datalake">Code</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Agentic Lightspeed</h1>
+    <p class="lede">
+      A real CrashLoopBackOff, diagnosed by Lightspeed Agentic with a person approving each stage.
+      Operator image <code>lightspeed-agentic-rhel9-operator:1.1.4</code>. Model <code>qwen38-27b</code>.
+      Captures from the OpenTLC sandbox, 2 Oct 2026.
+    </p>
+
+    <nav class="chapters" aria-label="Chapters">
+      <button type="button" data-slide="0" aria-current="true">CrashLoop</button>
+      <button type="button" data-slide="1">LLMProvider</button>
+      <button type="button" data-slide="2">Agents</button>
+      <button type="button" data-slide="3">Policy</button>
+      <button type="button" data-slide="4">AgenticRun</button>
+      <button type="button" data-slide="5">Approval</button>
+      <button type="button" data-slide="6">Result</button>
+      <button type="button" data-slide="7">Running</button>
+    </nav>
+
+    <div id="journey-carousel" class="journey-carousel" tabindex="0" aria-roledescription="carousel">
+      <div class="journey-viewport">
+
+        <figure class="journey-slide is-active">
+          <img src="assets/screenshots/38-agentic-crashloop-pod.png" alt="Pod api-server in lightspeed-demo with status CrashLoopBackOff" width="1448" height="954" fetchpriority="high">
+          <figcaption>
+            <span class="slide-num">Step 01</span>
+            <strong>The failing pod</strong>
+            <span class="desc">Deployment <code>api-server</code> in <code>lightspeed-demo</code>. The container command exits 1, so the pod stays in CrashLoopBackOff.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/41-agentic-llmprovider.png" alt="LLMProvider maas-openai type OpenAI" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 02</span>
+            <strong>LLMProvider</strong>
+            <span class="desc">Cluster <code>LLMProvider</code> <code>maas-openai</code>, type OpenAI. Agents use this provider for <code>qwen38-27b</code>.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/42-agentic-agents.png" alt="Agents default, fast, and smart on model qwen38-27b" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 03</span>
+            <strong>Agents</strong>
+            <span class="desc"><code>smart</code>, <code>default</code>, and <code>fast</code>. Each points at <code>maas-openai</code> and model <code>qwen38-27b</code>. Analysis uses smart, execution default, verification fast.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/43-agentic-approvalpolicy.png" alt="ApprovalPolicy cluster YAML with Manual stages" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 04</span>
+            <strong>ApprovalPolicy</strong>
+            <span class="desc">Cluster policy <code>cluster</code>. Analysis, Execution, and Verification are <code>Manual</code>. Up to 3 runs at once.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/39-agentic-run.png" alt="AgenticRun fix-crashloop details with Analyzed condition" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 05</span>
+            <strong>AgenticRun</strong>
+            <span class="desc"><code>fix-crashloop</code> in <code>openshift-lightspeed</code>. The request asks for one option: set the container command to <code>sleep infinity</code>.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/44-agentic-run-approval.png" alt="AgenticRunApproval fix-crashloop YAML with Analysis stage" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 06</span>
+            <strong>AgenticRunApproval</strong>
+            <span class="desc">Same name as the run. The Analysis stage is approved. Later stages are added one at a time.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/45-agentic-analysis-result.png" alt="AnalysisResult fix-crashloop-analysis-1 outcome Failed" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 07</span>
+            <strong>AnalysisResult</strong>
+            <span class="desc"><code>fix-crashloop-analysis-1</code>, owned by the run. Outcome Failed. Started is True; Completed reason is Failed.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="journey-slide" hidden>
+          <img src="assets/screenshots/40-agentic-pod-running.png" alt="Pod api-server-f667986dc-f7bjr Running in lightspeed-demo" width="1448" height="954">
+          <figcaption>
+            <span class="slide-num">Step 08</span>
+            <strong>Pod Running</strong>
+            <span class="desc"><code>api-server-f667986dc-f7bjr</code> is Running. The container command is <code>sleep infinity</code>, so the deployment stays up.</span>
+          </figcaption>
+        </figure>
+
+      </div>
+      <div class="journey-controls">
+        <div class="journey-nav">
+          <button type="button" class="journey-btn" id="journey-prev" aria-label="Previous step">← Prev</button>
+          <button type="button" class="journey-btn" id="journey-next" aria-label="Next step">Next →</button>
+          <button type="button" class="journey-btn" id="journey-fs" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button>
+        </div>
+        <div class="journey-dots" id="journey-dots" role="tablist" aria-label="Steps"></div>
+        <span class="journey-status" id="journey-status" aria-live="polite">1 / 8</span>
+      </div>
+    </div>
+    <p class="hint">← → to move · F for fullscreen · click a capture to enlarge</p>
+  </main>
+
+  <footer>
+    Live captures · OpenShift 4.20 ·
+    <a href="https://github.com/maximilianoPizarro/ocp-datalake">maximilianoPizarro/ocp-datalake</a>
+  </footer>
+  <script src="assets/js/carousel.js"></script>
+</body>
+</html>

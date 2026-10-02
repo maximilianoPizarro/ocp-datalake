@@ -55,4 +55,5 @@ echo "  bash scripts/enable-workbench.sh      # CPU Jupyter workbench + live MAA
 echo "  bash scripts/run-spark-score.sh       # Stackable Spark batch -> /predict (after inference is up)"
 echo "  bash scripts/enable-streams-kafka.sh  # Streams for Apache Kafka + Console (after operators sync)"
 echo "  bash scripts/run-spark-kafka.sh       # Spark streaming subscribe -> /predict"
+echo "  bash scripts/enable-lightspeed-agentic.sh  # Agentic operator (catalog image) + MaaS LLMProvider demo"
 echo "  bash scripts/enable-devspaces.sh      # optional OpenShift Dev Spaces (OperatorHub stable)"
